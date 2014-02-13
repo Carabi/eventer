@@ -18,8 +18,9 @@ public class CarabiMessage {
 		ping(1),
 		pong(2),
 		auth(3),
-		test(4);
-
+		test(4),
+		
+		synch(10);
 		private short code;
 		Type (int code) {
 			if (code != (short)code) {

@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is Metro/2.3 (tags/2.3-7528; 2013-04-29T19:34:10+0000) JAXWS-RI/2.2.8 JAXWS/2.2 svn-revision#unknown. --><xs:schema xmlns:tns="http://soap.server.carabi.ru/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://soap.server.carabi.ru/">
+
+<xs:element name="CarabiException" type="tns:CarabiException"/>
+
+<xs:element name="JSONException" type="tns:JSONException"/>
+
+<xs:element name="collectUnreadMessages" type="tns:collectUnreadMessages"/>
+
+<xs:element name="collectUnreadMessagesDetails" type="tns:collectUnreadMessagesDetails"/>
+
+<xs:element name="collectUnreadMessagesDetailsResponse" type="tns:collectUnreadMessagesDetailsResponse"/>
+
+<xs:element name="collectUnreadMessagesResponse" type="tns:collectUnreadMessagesResponse"/>
+
+<xs:element name="countUnreadMessages" type="tns:countUnreadMessages"/>
+
+<xs:element name="countUnreadMessagesResponse" type="tns:countUnreadMessagesResponse"/>
+
+<xs:element name="getMyID" type="tns:getMyID"/>
+
+<xs:element name="getMyIDResponse" type="tns:getMyIDResponse"/>
+
+<xs:complexType name="collectUnreadMessagesDetails">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="collectUnreadMessagesDetailsResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="CarabiException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="JSONException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="collectUnreadMessages">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="collectUnreadMessagesResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="countUnreadMessages">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="countUnreadMessagesResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMyID">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMyIDResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>

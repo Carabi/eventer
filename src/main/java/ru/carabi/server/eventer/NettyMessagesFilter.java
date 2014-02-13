@@ -8,6 +8,7 @@ import io.netty.util.ReferenceCountUtil;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import static ru.carabi.server.eventer.CarabiMessage.Type.auth;
 
 /**
  * Реализация бинарного протокола сообщений Carabi.
@@ -23,6 +24,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	private int clientID;
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
 	private int currentMessageType;
+	private String token;
 	ByteBuf messageBuffer;
 
 	@Override
@@ -40,7 +42,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	 * Данные включаеют два байта (старший и младший) с типом сообщения, с
 	 */
 	@Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+	public void channelRead(ChannelHandlerContext ctx, Object msg) {
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
@@ -59,6 +61,9 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
 						CarabiMessage carabiMessage = new CarabiMessage(message, currentMessageType, ctx);
+						if (carabiMessage.getType() == auth) {
+							token = message;
+						}
 						ctx.fireChannelRead(carabiMessage);
 						ReferenceCountUtil.release(messageBuffer);
 					} else {
@@ -69,7 +74,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}
-    }
+	}
 
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -93,15 +98,16 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
 		super.channelUnregistered(ctx); //To change body of generated methods, choose Tools | Templates.
 		logger.info("channelUnregistered");
+		ClientSessionHolder.delSession(token);
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
 	}
 	
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
-        logger.log(Level.SEVERE, "", cause);
-        ctx.close();
-    }
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+		// Close the connection when an exception is raised.
+		logger.log(Level.SEVERE, "", cause);
+		ctx.close();
+	}
 }

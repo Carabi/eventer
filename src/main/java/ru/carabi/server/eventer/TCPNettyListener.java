@@ -13,17 +13,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TCPNettyListener {
-    private static final Logger logger = Logger.getLogger(TCPNettyListener.class.getName());
-    private boolean released;
-    private final DatagramSocket dsocket = null;
-	
-	
-	
-    public boolean isReleased() {
-        return released;
-    }
-	
-    public static void main(String[] args) {
+	private static final Logger logger = Logger.getLogger(TCPNettyListener.class.getName());
+	private boolean released;
+	private final DatagramSocket dsocket = null;
+
+
+
+	public boolean isReleased() {
+		return released;
+	}
+
+	public static void main(String[] args) {
 		logger.log(Level.INFO, "starting listener");
 		int port = 9234;
 		logger.log(Level.INFO, "listening on port {0}", port);
@@ -32,8 +32,8 @@ public class TCPNettyListener {
 		try {
 			ServerBootstrap b = new ServerBootstrap();
 			b.group(bossGroup, workerGroup)
-			 .channel(NioServerSocketChannel.class)
-			 .childHandler(new ChannelInitializer<SocketChannel>() {
+			.channel(NioServerSocketChannel.class)
+			.childHandler(new ChannelInitializer<SocketChannel>() {
 				 @Override
 				 public void initChannel(SocketChannel ch) throws Exception {
 					logger.info("initChannel");
@@ -48,10 +48,10 @@ public class TCPNettyListener {
 //						logger.severe("Not a ru.carabi.server.messager.CarabiMessageListener!");
 //					}
 					ch.pipeline().addLast(new NettyMessagesFilter(), new CarabiMessagerHandler());
-				 }
-			 })
-			 .option(ChannelOption.SO_BACKLOG, 128)
-			 .childOption(ChannelOption.SO_KEEPALIVE, true);
+				}
+			})
+			.option(ChannelOption.SO_BACKLOG, 128)
+			.childOption(ChannelOption.SO_KEEPALIVE, true);
 
 			// Bind and start to accept incoming connections.
 			ChannelFuture f = b.bind(port).sync();

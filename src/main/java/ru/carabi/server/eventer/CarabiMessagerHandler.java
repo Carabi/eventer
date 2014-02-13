@@ -32,18 +32,41 @@ public class CarabiMessagerHandler extends SimpleChannelInboundHandler<CarabiMes
 		byte[] dataToPost;
 		ByteBuf data = null;
 		String answer;
-		if (msg.getType().equals(CarabiMessage.Type.ping)) {
-			 answer = "PONG ПОНГ";
-			dataToPost = answer.getBytes(Charset.forName("UTF-8"));
-			data = ctx.alloc().buffer(dataToPost.length + 3);
-			data.writeShort(CarabiMessage.Type.pong.getCode());
-		} else {
-			answer = "Клиент отправил сообщение: " + msg.getText() + " " + msg.getType().name();
-			dataToPost = answer.getBytes(Charset.forName("UTF-8"));
-			data = ctx.alloc().buffer(dataToPost.length + 3);
-			//data.writeShort(CarabiMessage.Type.test.getCode());
-			data.writeByte(CarabiMessage.Type.test.getCode());
-			data.writeByte(0);
+		switch (msg.getType()) {
+			case ping:
+				answer = "PONG ПОНГ";
+				dataToPost = answer.getBytes(Charset.forName("UTF-8"));
+				data = ctx.alloc().buffer(dataToPost.length + 3);
+//				data.writeShort(CarabiMessage.Type.pong.getCode());
+				data.writeByte(CarabiMessage.Type.pong.getCode());
+				data.writeByte(0);
+				break;
+			case pong:
+				return;
+			case auth:
+				String token = msg.getText();
+				if (ClientSessionHolder.addSession(token, ctx)) {
+					answer = "Клиент " + token +" авторизован!";
+					dataToPost = answer.getBytes(Charset.forName("UTF-8"));
+					data = ctx.alloc().buffer(dataToPost.length + 3);
+					//data.writeShort(CarabiMessage.Type.test.getCode());
+					data.writeByte(CarabiMessage.Type.test.getCode());
+					data.writeByte(0);
+				} else {
+					ctx.disconnect();
+					return;
+				}
+				break;
+			case synch: {
+				return;
+			}
+			default:
+				answer = "Клиент отправил сообщение: " + msg.getText() + " " + msg.getType().name();
+				dataToPost = answer.getBytes(Charset.forName("UTF-8"));
+				data = ctx.alloc().buffer(dataToPost.length + 3);
+				//data.writeShort(CarabiMessage.Type.test.getCode());
+				data.writeByte(CarabiMessage.Type.test.getCode());
+				data.writeByte(0);
 		}
 		logger.info(answer);
 		data.writeBytes(dataToPost);

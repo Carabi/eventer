@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is Metro/2.3 (tags/2.3-7528; 2013-04-29T19:34:10+0000) JAXWS-RI/2.2.8 JAXWS/2.2 svn-revision#unknown. --><xs:schema xmlns:tns="http://soap.server.carabi.ru/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://soap.server.carabi.ru/">
+
+<xs:element name="CarabiException" type="tns:CarabiException"/>
+
+<xs:element name="RegisterException" type="tns:RegisterException"/>
+
+<xs:element name="getOracleUserID" type="tns:getOracleUserID"/>
+
+<xs:element name="getOracleUserIDResponse" type="tns:getOracleUserIDResponse"/>
+
+<xs:element name="getWebUserInfo" type="tns:getWebUserInfo"/>
+
+<xs:element name="getWebUserInfoResponse" type="tns:getWebUserInfoResponse"/>
+
+<xs:element name="registerUser" type="tns:registerUser"/>
+
+<xs:element name="registerUserLight" type="tns:registerUserLight"/>
+
+<xs:element name="registerUserLightResponse" type="tns:registerUserLightResponse"/>
+
+<xs:element name="registerUserResponse" type="tns:registerUserResponse"/>
+
+<xs:element name="unauthorize" type="tns:unauthorize"/>
+
+<xs:element name="unauthorizeResponse" type="tns:unauthorizeResponse"/>
+
+<xs:element name="wellcomeNN" type="tns:wellcomeNN"/>
+
+<xs:element name="wellcomeNNResponse" type="tns:wellcomeNNResponse"/>
+
+<xs:complexType name="registerUserLight">
+<xs:sequence>
+<xs:element name="login" type="xs:string" minOccurs="0"/>
+<xs:element name="password" type="xs:string" minOccurs="0"/>
+<xs:element name="requireSession" type="xs:boolean"/>
+<xs:element name="schemaName" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="registerUserLightResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+<xs:element name="schemaName" type="xs:string" minOccurs="0"/>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="RegisterException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="CarabiException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getOracleUserID">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getOracleUserIDResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="wellcomeNN">
+<xs:sequence>
+<xs:element name="login" type="xs:string" minOccurs="0"/>
+<xs:element name="version" type="xs:string" minOccurs="0"/>
+<xs:element name="vc" type="xs:int"/>
+<xs:element name="schemaID" type="xs:int"/>
+<xs:element name="schemaName" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="wellcomeNNResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+<xs:element name="timestamp" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getWebUserInfo">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getWebUserInfoResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="registerUser">
+<xs:sequence>
+<xs:element name="login" type="xs:string" minOccurs="0"/>
+<xs:element name="password" type="xs:string" minOccurs="0"/>
+<xs:element name="version" type="xs:string" minOccurs="0"/>
+<xs:element name="vc" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="registerUserResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+<xs:element name="schemaID" type="xs:int" minOccurs="0"/>
+<xs:element name="info" type="tns:soapUserInfo" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="soapUserInfo">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="ct_item_id" type="xs:int"/>
+<xs:element name="display" type="xs:string" minOccurs="0"/>
+<xs:element name="owner" type="xs:int"/>
+<xs:element name="owner_fullname" type="xs:string" minOccurs="0"/>
+<xs:element name="parent" type="xs:int"/>
+<xs:element name="parent_display" type="xs:string" minOccurs="0"/>
+<xs:element name="role" type="xs:int"/>
+<xs:element name="role_descr" type="xs:string" minOccurs="0"/>
+<xs:element name="available_workspaces" type="xs:anyType" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="databaseDescr" type="xs:string" minOccurs="0"/>
+<xs:element name="userrole_id" type="xs:int"/>
+<xs:element name="license_to" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="unauthorize">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="permanently" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="unauthorizeResponse">
+<xs:sequence/>
+</xs:complexType>
+</xs:schema>
