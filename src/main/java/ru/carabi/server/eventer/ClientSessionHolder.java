@@ -96,9 +96,9 @@ public class ClientSessionHolder {
 			String answer = "PING ПИНГ";
 			byte[] dataToPost = answer.getBytes(Charset.forName("UTF-8"));
 			ByteBuf data = sessionContext.alloc().buffer(dataToPost.length + 3);
-//			data.writeShort(CarabiMessage.Type.ping.getCode());
-			data.writeByte(CarabiMessage.Type.ping.getCode());
-			data.writeByte(0);
+			data.writeShort(CarabiMessage.Type.ping.getCode());
+//			data.writeByte(CarabiMessage.Type.ping.getCode());
+//			data.writeByte(0);
 			data.writeBytes(dataToPost);
 			data.writeByte(0);
 			sessionContext.writeAndFlush(data);

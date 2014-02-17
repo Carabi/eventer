@@ -1,9 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package ru.carabi.server.eventer;
 
 import io.netty.buffer.ByteBuf;
@@ -37,21 +31,21 @@ public class CarabiMessagerHandler extends SimpleChannelInboundHandler<CarabiMes
 				answer = "PONG ПОНГ";
 				dataToPost = answer.getBytes(Charset.forName("UTF-8"));
 				data = ctx.alloc().buffer(dataToPost.length + 3);
-//				data.writeShort(CarabiMessage.Type.pong.getCode());
-				data.writeByte(CarabiMessage.Type.pong.getCode());
-				data.writeByte(0);
+				data.writeShort(CarabiMessage.Type.pong.getCode());
+//				data.writeByte(CarabiMessage.Type.pong.getCode());
+//				data.writeByte(0);
 				break;
 			case pong:
 				return;
 			case auth:
 				String token = msg.getText();
 				if (ClientSessionHolder.addSession(token, ctx)) {
-					answer = "Клиент " + token +" авторизован!";
+					answer = "Клиент " + token + " авторизован!";
 					dataToPost = answer.getBytes(Charset.forName("UTF-8"));
 					data = ctx.alloc().buffer(dataToPost.length + 3);
-					//data.writeShort(CarabiMessage.Type.test.getCode());
-					data.writeByte(CarabiMessage.Type.test.getCode());
-					data.writeByte(0);
+					data.writeShort(CarabiMessage.Type.test.getCode());
+//					data.writeByte(CarabiMessage.Type.test.getCode());
+//					data.writeByte(0);
 				} else {
 					ctx.disconnect();
 					return;
@@ -64,9 +58,9 @@ public class CarabiMessagerHandler extends SimpleChannelInboundHandler<CarabiMes
 				answer = "Клиент отправил сообщение: " + msg.getText() + " " + msg.getType().name();
 				dataToPost = answer.getBytes(Charset.forName("UTF-8"));
 				data = ctx.alloc().buffer(dataToPost.length + 3);
-				//data.writeShort(CarabiMessage.Type.test.getCode());
-				data.writeByte(CarabiMessage.Type.test.getCode());
-				data.writeByte(0);
+				data.writeShort(CarabiMessage.Type.test.getCode());
+//				data.writeByte(CarabiMessage.Type.test.getCode());
+//				data.writeByte(0);
 		}
 		logger.info(answer);
 		data.writeBytes(dataToPost);
