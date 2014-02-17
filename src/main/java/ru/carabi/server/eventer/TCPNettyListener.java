@@ -23,9 +23,8 @@ public class TCPNettyListener {
 		return released;
 	}
 
-	public static void main(String[] args) {
+	public void start(int port) {
 		logger.log(Level.INFO, "starting listener");
-		int port = 9234;
 		logger.log(Level.INFO, "listening on port {0}", port);
 		EventLoopGroup bossGroup = new NioEventLoopGroup();
 		EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -34,8 +33,8 @@ public class TCPNettyListener {
 			b.group(bossGroup, workerGroup)
 			.channel(NioServerSocketChannel.class)
 			.childHandler(new ChannelInitializer<SocketChannel>() {
-				 @Override
-				 public void initChannel(SocketChannel ch) throws Exception {
+				@Override
+				public void initChannel(SocketChannel ch) throws Exception {
 					logger.info("initChannel");
 //					MessageEndpoint endpoint = endpointFactory.createEndpoint(null);
 //					for (Class inter: endpoint.getClass().getInterfaces()) {
