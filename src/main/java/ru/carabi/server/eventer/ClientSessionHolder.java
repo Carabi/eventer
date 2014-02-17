@@ -2,7 +2,9 @@ package ru.carabi.server.eventer;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,6 +27,12 @@ public class ClientSessionHolder {
 	private static final String salt = "EventerKOD";
 	private static final String pepper = "#Test~";
 	private static final Charset charset = Charset.forName("UTF-8");
+	private static final ResourceBundle settings = ResourceBundle.getBundle("ru.carabi.server.eventer.Settings");
+	private static String soapServer;
+
+	public static void setSoapServer(String soapServer) {
+		ClientSessionHolder.soapServer = soapServer;
+	}
 	
 	private static final ConcurrentHashMap<String, Timer> sessions = new ConcurrentHashMap<>();
 	
@@ -39,7 +47,7 @@ public class ClientSessionHolder {
 	public static boolean addSession(String token, ChannelHandlerContext sessionContext) {
 		try {
 			String soapToken = decrypt(token);
-			GuestService_Service service = new GuestService_Service();
+			GuestService_Service service = new GuestService_Service(new URL(soapServer + settings.getString("GUEST_SERVICE")));
 			GuestService port = service.getPort(GuestService.class);
 			Logger.getLogger(ClientSessionHolder.class.getName()).log(Level.INFO, "{0}", port.getOracleUserID(soapToken));
 			Timer sessionTimer = new Timer(token, sessionContext);
