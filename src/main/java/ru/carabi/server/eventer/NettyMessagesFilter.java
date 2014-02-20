@@ -39,7 +39,8 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	
 	/**
 	 * Чтение данных из канала.
-	 * Данные включаеют два байта (старший и младший) с типом сообщения, с
+	 * Данные включаеют два байта (старший и младший) с типом сообщения, строку
+	 * длиной до 10 КиБ в UTF8 и терминальный ноль.
 	 */
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -60,12 +61,13 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 					if (bt == 0) {
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
-						CarabiMessage carabiMessage = new CarabiMessage(message, currentMessageType, ctx);
+						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, currentMessageType, ctx);
 						if (carabiMessage.getType() == auth) {
 							token = message;
 						}
-						ctx.fireChannelRead(carabiMessage);
+//						ctx.fireChannelRead(carabiMessage);
 						ReferenceCountUtil.release(messageBuffer);
+						carabiMessage.process();
 					} else {
 						messageBuffer.writeByte(bt);
 					}

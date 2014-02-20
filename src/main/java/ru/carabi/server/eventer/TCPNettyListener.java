@@ -46,7 +46,7 @@ public class TCPNettyListener {
 //					} else {
 //						logger.severe("Not a ru.carabi.server.messager.CarabiMessageListener!");
 //					}
-					ch.pipeline().addLast(new NettyMessagesFilter(), new CarabiMessagerHandler());
+					ch.pipeline().addLast(new NettyMessagesFilter());
 				}
 			})
 			.option(ChannelOption.SO_BACKLOG, 128)
