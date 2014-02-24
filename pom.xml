@@ -40,6 +40,21 @@
                         <id>wsimport-generate-GuestService</id>
                         <phase>generate-sources</phase>
                     </execution>
+                    <execution>
+                        <goals>
+                            <goal>wsimport</goal>
+                        </goals>
+                        <configuration>
+                            <wsdlFiles>
+                                <wsdlFile>127.0.0.1_8080/carabiserver-web-1.3/MessageService.wsdl</wsdlFile>
+                            </wsdlFiles>
+                            <packageName></packageName>
+                            <wsdlLocation>http://127.0.0.1:8080/carabiserver-web-1.3/MessageService?wsdl</wsdlLocation>
+                            <staleFile>${project.build.directory}/jaxws/stale/MessageService.stale</staleFile>
+                        </configuration>
+                        <id>wsimport-generate-MessageService</id>
+                        <phase>generate-sources</phase>
+                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>

@@ -65,9 +65,8 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 						if (carabiMessage.getType() == auth) {
 							token = message;
 						}
-//						ctx.fireChannelRead(carabiMessage);
 						ReferenceCountUtil.release(messageBuffer);
-						carabiMessage.process();
+						carabiMessage.process(token);
 					} else {
 						messageBuffer.writeByte(bt);
 					}

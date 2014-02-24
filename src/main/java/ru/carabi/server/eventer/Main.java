@@ -1,5 +1,7 @@
 package ru.carabi.server.eventer;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ResourceBundle;
 
 /**
@@ -9,9 +11,11 @@ import java.util.ResourceBundle;
  */
 public class Main {
 	private static final ResourceBundle settings = ResourceBundle.getBundle("ru.carabi.server.eventer.Settings");
+	private static String useSoapServer;
 	public static void main(String[] args) {
 		int port = Integer.parseInt(settings.getString("LISTEN_PORT"));
-		ClientSessionHolder.setSoapServer(settings.getString("SOAP_SERVER"));
+		useSoapServer = settings.getString("SOAP_SERVER");
+		
 		try {
 			if (args.length == 1) {
 				setSoapServer(args[0]);
@@ -26,16 +30,24 @@ public class Main {
 			printHelp();
 			return;
 		}
-		new TCPNettyListener().start(port);
+		try {
+			ClientSessionHolder.setSoapServer(useSoapServer);
+			new TCPNettyListener().start(port);
+		} catch (Exception ex) {
+			System.out.println("error: " + ex.getMessage());
+		}
 	}
 
 	private static void printHelp() {
 		System.out.println("Usage: java ru.carabi.server.eventer.Main [http://server/soap_service/ [listen_port]]\nDefault are:\n" + settings.getString("SOAP_SERVER") + "\n" + settings.getString("LISTEN_PORT"));
 	}
 
-	private static void setSoapServer(String soapServer) throws IllegalArgumentException{
-		if (soapServer.startsWith("http://") || soapServer.startsWith("https://")) {
-			ClientSessionHolder.setSoapServer(soapServer);
-		} else throw new IllegalArgumentException();
+	private static void setSoapServer(String soapServerInput) throws IllegalArgumentException{
+		try {
+			new URL(soapServerInput);
+			useSoapServer = soapServerInput;
+		} catch(MalformedURLException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 }
