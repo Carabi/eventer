@@ -28,12 +28,6 @@
 <message name="collectUnreadMessagesDetailsResponse">
 <part name="parameters" element="tns:collectUnreadMessagesDetailsResponse"/>
 </message>
-<message name="getMyID">
-<part name="parameters" element="tns:getMyID"/>
-</message>
-<message name="getMyIDResponse">
-<part name="parameters" element="tns:getMyIDResponse"/>
-</message>
 <portType name="MessageService">
 <operation name="countUnreadMessages">
 <input wsam:Action="http://soap.server.carabi.ru/MessageService/countUnreadMessagesRequest" message="tns:countUnreadMessages"/>
@@ -51,11 +45,6 @@
 <output wsam:Action="http://soap.server.carabi.ru/MessageService/collectUnreadMessagesDetailsResponse" message="tns:collectUnreadMessagesDetailsResponse"/>
 <fault message="tns:CarabiException" name="CarabiException" wsam:Action="http://soap.server.carabi.ru/MessageService/collectUnreadMessagesDetails/Fault/CarabiException"/>
 <fault message="tns:JSONException" name="JSONException" wsam:Action="http://soap.server.carabi.ru/MessageService/collectUnreadMessagesDetails/Fault/JSONException"/>
-</operation>
-<operation name="getMyID">
-<input wsam:Action="http://soap.server.carabi.ru/MessageService/getMyIDRequest" message="tns:getMyID"/>
-<output wsam:Action="http://soap.server.carabi.ru/MessageService/getMyIDResponse" message="tns:getMyIDResponse"/>
-<fault message="tns:CarabiException" name="CarabiException" wsam:Action="http://soap.server.carabi.ru/MessageService/getMyID/Fault/CarabiException"/>
 </operation>
 </portType>
 <binding name="MessageServicePortBinding" type="tns:MessageService">
@@ -100,18 +89,6 @@
 </fault>
 <fault name="JSONException">
 <soap:fault name="JSONException" use="literal"/>
-</fault>
-</operation>
-<operation name="getMyID">
-<soap:operation soapAction=""/>
-<input>
-<soap:body use="literal"/>
-</input>
-<output>
-<soap:body use="literal"/>
-</output>
-<fault name="CarabiException">
-<soap:fault name="CarabiException" use="literal"/>
 </fault>
 </operation>
 </binding>

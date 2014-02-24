@@ -33,7 +33,7 @@
                             <wsdlFiles>
                                 <wsdlFile>127.0.0.1_8080/carabiserver-web-1.3/GuestService.wsdl</wsdlFile>
                             </wsdlFiles>
-                            <packageName>ru.carabi.server.eventer.wsdl</packageName>
+                            <packageName></packageName>
                             <wsdlLocation>http://127.0.0.1:8080/carabiserver-web-1.3/GuestService?wsdl</wsdlLocation>
                             <staleFile>${project.build.directory}/jaxws/stale/GuestService.stale</staleFile>
                         </configuration>

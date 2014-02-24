@@ -98,6 +98,17 @@
 </xs:sequence>
 </xs:complexType>
 
+<xs:complexType name="unauthorize">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="permanently" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="unauthorizeResponse">
+<xs:sequence/>
+</xs:complexType>
+
 <xs:complexType name="registerUser">
 <xs:sequence>
 <xs:element name="login" type="xs:string" minOccurs="0"/>
@@ -131,16 +142,5 @@
 <xs:element name="userrole_id" type="xs:int"/>
 <xs:element name="license_to" type="xs:string" minOccurs="0"/>
 </xs:sequence>
-</xs:complexType>
-
-<xs:complexType name="unauthorize">
-<xs:sequence>
-<xs:element name="token" type="xs:string" minOccurs="0"/>
-<xs:element name="permanently" type="xs:boolean"/>
-</xs:sequence>
-</xs:complexType>
-
-<xs:complexType name="unauthorizeResponse">
-<xs:sequence/>
 </xs:complexType>
 </xs:schema>
