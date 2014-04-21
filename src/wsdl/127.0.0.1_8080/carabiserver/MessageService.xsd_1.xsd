@@ -2,7 +2,7 @@
 
 <xs:element name="CarabiException" type="tns:CarabiException"/>
 
-<xs:element name="JSONException" type="tns:JSONException"/>
+<xs:element name="CarabiOracleException" type="tns:CarabiOracleException"/>
 
 <xs:element name="collectUnreadMessages" type="tns:collectUnreadMessages"/>
 
@@ -15,6 +15,10 @@
 <xs:element name="countUnreadMessages" type="tns:countUnreadMessages"/>
 
 <xs:element name="countUnreadMessagesResponse" type="tns:countUnreadMessagesResponse"/>
+
+<xs:element name="getNotifyMessages" type="tns:getNotifyMessages"/>
+
+<xs:element name="getNotifyMessagesResponse" type="tns:getNotifyMessagesResponse"/>
 
 <xs:complexType name="collectUnreadMessagesDetails">
 <xs:sequence>
@@ -29,12 +33,6 @@
 </xs:complexType>
 
 <xs:complexType name="CarabiException">
-<xs:sequence>
-<xs:element name="message" type="xs:string" minOccurs="0"/>
-</xs:sequence>
-</xs:complexType>
-
-<xs:complexType name="JSONException">
 <xs:sequence>
 <xs:element name="message" type="xs:string" minOccurs="0"/>
 </xs:sequence>
@@ -61,6 +59,24 @@
 <xs:complexType name="countUnreadMessagesResponse">
 <xs:sequence>
 <xs:element name="return" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getNotifyMessages">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getNotifyMessagesResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="CarabiOracleException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
 </xs:sequence>
 </xs:complexType>
 </xs:schema>

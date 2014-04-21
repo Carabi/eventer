@@ -6,6 +6,8 @@ import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import ru.carabi.server.soap.CarabiException_Exception;
+import ru.carabi.server.soap.CarabiOracleException_Exception;
+import ru.carabi.server.soap.JSONException_Exception;
 
 /**
  * Сообщение от клиента Carabi.
@@ -161,9 +163,9 @@ class Sync extends CarabiMessage {
 	public void process(String token) {
 		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
 			try {
-				ClientSessionHolder.countUnreadMessages(sessionContextChannel, token);
-			} catch (CarabiException_Exception ex) {
-				Logger.getLogger(Sync.class.getName()).log(Level.SEVERE, null, ex);
+				ClientSessionHolder.sendEvents(sessionContextChannel, token, 1);
+			} catch (CarabiException_Exception | JSONException_Exception | CarabiOracleException_Exception ex) {
+				logger.log(Level.SEVERE, null, ex);
 			}
 		}
 		

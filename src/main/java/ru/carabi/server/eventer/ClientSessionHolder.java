@@ -5,6 +5,8 @@ import io.netty.util.internal.ConcurrentSet;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -13,18 +15,24 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.ws.Holder;
 import ru.carabi.server.soap.GuestService;
 import ru.carabi.server.soap.GuestService_Service;
 import ru.carabi.server.soap.CarabiException_Exception;
+import ru.carabi.server.soap.CarabiOracleException_Exception;
+import ru.carabi.server.soap.JSONException_Exception;
 import ru.carabi.server.soap.MessageService;
 import ru.carabi.server.soap.MessageService_Service;
+import ru.carabi.server.soap.QueryParameter;
+import ru.carabi.server.soap.QueryService;
+import ru.carabi.server.soap.QueryService_Service;
 
 /**
  * Контейнер клиентских сессий.
  * При подключении клиента к NettyListener соединение сохраняется тут для дальнейшей
  * передачи пакетов по инициативе сервера.
  * 
- * @author sasha
+ * @author sasha<kopilov.ad@gmail.com>
  */
 public class ClientSessionHolder {
 	private static final String key = "Carab!";
@@ -35,12 +43,15 @@ public class ClientSessionHolder {
 	private static final Logger logger = Logger.getLogger(ClientSessionHolder.class.getName());
 	private static GuestService guestServicePort;
 	private static MessageService messageServicePort;
+	private static QueryService queryServicePort;
 
 	public static void setSoapServer(String soapServer) throws MalformedURLException {
 		GuestService_Service guestService = new GuestService_Service(new URL(soapServer + settings.getString("GUEST_SERVICE")));
 		guestServicePort = guestService.getPort(GuestService.class);
 		MessageService_Service messageService = new MessageService_Service(new URL(soapServer + settings.getString("MESSAGE_SERVICE")));
 		messageServicePort = messageService.getPort(MessageService.class);
+		QueryService_Service queryService = new QueryService_Service(new URL(soapServer + settings.getString("QUERY_SERVICE")));
+		queryServicePort = queryService.getPort(QueryService.class);
 	}
 	
 	private static final ConcurrentHashMap<String, Timer> sessions = new ConcurrentHashMap<>();
@@ -99,16 +110,20 @@ public class ClientSessionHolder {
 
 		@Override
 		public synchronized void run() {
+			int format = 0;
 			while (active && !sessionContextChannel.isRemoved()) {
 				try {
-					countUnreadMessages(sessionContextChannel, eventerToken);
+					sendEvents(sessionContextChannel, eventerToken, format);
 					//sendPing(sessionContextChannel);
-				} catch (CarabiException_Exception ex) {
-					Logger.getLogger(ClientSessionHolder.class.getName()).log(Level.SEVERE, null, ex);
+					format++;
+					format = format % 2;
+				} catch (CarabiException_Exception | JSONException_Exception | CarabiOracleException_Exception ex) {
+					logger.log(Level.SEVERE, null, ex);
 				}
 				try {
 					wait(5000);
 				} catch (InterruptedException ex) {
+					active = false;
 					logger.log(Level.SEVERE, null, ex);
 				}
 			}
@@ -121,9 +136,21 @@ public class ClientSessionHolder {
 		CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.ping.getCode(), answer);
 	}
 	
-	public static void countUnreadMessages(ChannelHandlerContext sessionContextChannel, String token) throws CarabiException_Exception {
-		int count = messageServicePort.countUnreadMessages(getSoapToken(token));
-		String answer = "{\"count\": " + count + "}";
+	public static void sendEvents(ChannelHandlerContext sessionContextChannel, String token, int format) throws CarabiException_Exception, JSONException_Exception, CarabiOracleException_Exception {
+		String answer;
+		if (format == 1) {
+			answer = messageServicePort.getNotifyMessages(getSoapToken(token));
+		} else {
+			
+			Holder<List<QueryParameter>> parameters = new Holder<>();
+			parameters.value = new ArrayList<>();
+			QueryParameter days = new QueryParameter();
+			days.setName("DAYS");
+			days.setValue("1");
+			parameters.value.add(days);
+			queryServicePort.runStoredQuery(getSoapToken(token), "", "GET_NOTIFY_MESSAGES", -1, true, parameters);
+			answer = parameters.value.get(0).getValue();
+		}
 		CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.chatCount.getCode(), answer);
 	}
 	
@@ -151,7 +178,7 @@ public class ClientSessionHolder {
 	
 	/**
 	 * Получение SOAP-токена по входному токену Eventer-а для авторизовавшихся пользователей.
-	 * Результат должен совпадать с результатом функции decrypt, по предполагается
+	 * Результат должен совпадать с результатом функции decrypt, но предполагается
 	 * большая скорость работы (не расшифровка, а чтение из памяти).
 	 * @return 
 	 */

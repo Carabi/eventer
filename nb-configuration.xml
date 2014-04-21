@@ -13,7 +13,8 @@ You can copy and paste the single properties, into the pom.xml file and the IDE 
 That way multiple projects can share the same settings (useful for formatting rules for example).
 Any value defined here will override the pom.xml file value but is only applicable to the current project.
 -->
-        <org-netbeans-modules-maven-jaxws._5f_C_5f_MessageService>http://127.0.0.1:8080/carabiserver-web-1.3/MessageService?wsdl</org-netbeans-modules-maven-jaxws._5f_C_5f_MessageService>
-        <org-netbeans-modules-maven-jaxws._5f_C_5f_GuestService>http://127.0.0.1:8080/carabiserver-web-1.3/GuestService?wsdl</org-netbeans-modules-maven-jaxws._5f_C_5f_GuestService>
+        <org-netbeans-modules-maven-jaxws._5f_C_5f_GuestService>http://127.0.0.1:8080/carabiserver/GuestService?wsdl</org-netbeans-modules-maven-jaxws._5f_C_5f_GuestService>
+        <org-netbeans-modules-maven-jaxws._5f_C_5f_MessageService>http://127.0.0.1:8080/carabiserver/MessageService?wsdl</org-netbeans-modules-maven-jaxws._5f_C_5f_MessageService>
+        <org-netbeans-modules-maven-jaxws._5f_C_5f_QueryService>http://127.0.0.1:8080/carabiserver/QueryService?wsdl</org-netbeans-modules-maven-jaxws._5f_C_5f_QueryService>
     </properties>
 </project-shared-configuration>

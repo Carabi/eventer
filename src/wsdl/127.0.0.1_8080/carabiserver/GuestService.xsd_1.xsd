@@ -33,6 +33,7 @@
 <xs:element name="login" type="xs:string" minOccurs="0"/>
 <xs:element name="password" type="xs:string" minOccurs="0"/>
 <xs:element name="requireSession" type="xs:boolean"/>
+<xs:element name="clientIp" type="xs:string" minOccurs="0"/>
 <xs:element name="schemaName" type="xs:string" minOccurs="0"/>
 </xs:sequence>
 </xs:complexType>
@@ -113,6 +114,7 @@
 <xs:sequence>
 <xs:element name="login" type="xs:string" minOccurs="0"/>
 <xs:element name="password" type="xs:string" minOccurs="0"/>
+<xs:element name="clientIp" type="xs:string" minOccurs="0"/>
 <xs:element name="version" type="xs:string" minOccurs="0"/>
 <xs:element name="vc" type="xs:int"/>
 </xs:sequence>
