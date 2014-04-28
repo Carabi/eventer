@@ -121,5 +121,11 @@
       <artifactId>netty-all</artifactId>
       <version>4.0.13.Final</version>
     </dependency>
+    <dependency>
+      <groupId>javax</groupId>
+      <artifactId>javaee-web-api</artifactId>
+      <version>7.0</version>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 </project>

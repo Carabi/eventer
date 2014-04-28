@@ -31,7 +31,7 @@ public class Main {
 			return;
 		}
 		try {
-			ClientSessionHolder.setSoapServer(useSoapServer);
+			SoapGateway.init(useSoapServer);
 			new TCPNettyListener().start(port);
 		} catch (Exception ex) {
 			System.out.println("error: " + ex.getMessage());

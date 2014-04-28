@@ -23,7 +23,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	private static int clientIDCounter = 0;
 	private int clientID;
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
-	private int currentMessageType;
+	private short currentMessageType;
 	private String token;
 	ByteBuf messageBuffer;
 
@@ -58,7 +58,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 				int bt = 0;
 				while (in.isReadable() && !readHead) {
 					bt = (int) in.readByte();
-					if (bt == 0) {
+					if (bt == 0) {//Терминальный ноль
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
 						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, currentMessageType, ctx);
