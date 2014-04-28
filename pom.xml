@@ -4,7 +4,7 @@
 
   <groupId>ru.carabi.server</groupId>
   <artifactId>eventer</artifactId>
-  <version>1.2</version>
+  <version>1.2.1</version>
   <packaging>jar</packaging>
 
   <name>eventer</name>

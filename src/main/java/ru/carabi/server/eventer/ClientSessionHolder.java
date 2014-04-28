@@ -3,7 +3,8 @@ package ru.carabi.server.eventer;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.ConcurrentSet;
 import java.nio.charset.Charset;
-import java.util.ResourceBundle;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -67,7 +68,7 @@ public class ClientSessionHolder {
 			channels.remove(sessionTimer.sessionContextChannel);
 		}
 	}
-	
+
 	/**
 	 * Сессия пользователя с таймером для отправки статистических событий.
 	 * По таймеру происходит опрос БД и отправка сообщений клиенту.
@@ -77,7 +78,8 @@ public class ClientSessionHolder {
 		String soapToken;
 		String eventerToken;
 		ChannelHandlerContext sessionContextChannel;
-		Set<CarabiMessage.Type> whatToSend = new ConcurrentSet<>();
+		Set<CarabiMessage.Type> whatToSend = new ConcurrentSet<>();//типы событий, которые должны приходить клиенту автоматически
+		Map<CarabiMessage.Type, String> oldEvents = new ConcurrentHashMap<>();//события по типам, приходившие клиенту ранее
 		
 		SessionTimer(String eventerToken, String soapToken, ChannelHandlerContext session) {
 			active = true;
@@ -89,12 +91,10 @@ public class ClientSessionHolder {
 		@Override
 		public synchronized void run() {
 			while (active && !sessionContextChannel.isRemoved()) {
-//				try {
-//					
-//					sendEvents(sessionContextChannel, eventerToken);
-//				} catch (CarabiException_Exception | JSONException_Exception | CarabiOracleException_Exception ex) {
-//					logger.log(Level.SEVERE, null, ex);
-//				}
+				for (CarabiMessage.Type type: whatToSend) {
+					CarabiMessage event = CarabiMessage.writeCarabiMessage(oldEvents.get(type), type.getCode(), false, sessionContextChannel);
+					event.process(eventerToken);
+				}
 				try {
 					wait(5000);
 				} catch (InterruptedException ex) {
@@ -143,5 +143,30 @@ public class ClientSessionHolder {
 		return sessions.get(eventerToken).soapToken;
 	}
 	
-
+	/**
+	 * Включить события у пользователя.
+	 * Пользователь с указанным токеном начнёт автоматически получать оповещения о
+	 * событиях указанного типа
+	 * @param eventerToken токен пользователя
+	 * @param eventTypes типы событий, о которых оповещать
+	 */
+	public static void addEventTypes(String eventerToken, Collection<CarabiMessage.Type> eventTypes) {
+		sessions.get(eventerToken).whatToSend.addAll(eventTypes);
+	}
+	/**
+	 * Отключить события у пользователя.
+	 * @param eventerToken токен пользователя
+	 * @param eventTypes типы событий, о которых не оповещать
+	 */
+	public static void removeEventTypes(String eventerToken, Collection<CarabiMessage.Type> eventTypes) {
+		sessions.get(eventerToken).whatToSend.removeAll(eventTypes);
+	}
+	
+	static void clearEventTypes(String eventerToken) {
+		sessions.get(eventerToken).whatToSend.clear();
+	}
+	
+	public static void setLaseEvent(String eventerToken, CarabiMessage.Type eventType, String eventText) {
+		sessions.get(eventerToken).oldEvents.put(eventType, eventText);
+	}
 }
