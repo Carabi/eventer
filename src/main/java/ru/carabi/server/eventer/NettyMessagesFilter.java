@@ -25,7 +25,8 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
 	private short currentMessageType;
 	private String token;
-	ByteBuf messageBuffer;
+	private final ByteBuf readingBuffer = Unpooled.directBuffer();
+	private ByteBuf messageBuffer;
 
 	@Override
 	public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
@@ -48,16 +49,22 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 			logger.warning("New CTX!");
 		}
 		ByteBuf in = (ByteBuf) msg;
-		try {
-			if (readHead && in.readableBytes() >= 2) {//сперва два байта заголовка
-				currentMessageType = in.readShort();
+		//Копируем в локальный буфер
+		readingBuffer.writeBytes(in);
+		in.release();
+		while (readingBuffer.isReadable()) {
+			if (readHead) {//Читаем два байта заголовка
+				if (readingBuffer.readableBytes() < 2) {
+					return;
+				}
+				currentMessageType = readingBuffer.readShort();
 				readHead = false;
 				messageBuffer = Unpooled.directBuffer(10240);
 			}
-			if (!readHead && in.readableBytes() >= 1) {//Потом читаем до терминального нуля, складывая в буфер
+			if (!readHead && readingBuffer.readableBytes() >= 1) {//Потом читаем до терминального нуля, складывая в отдельный буфер
 				int bt = 0;
-				while (in.isReadable() && !readHead) {
-					bt = (int) in.readByte();
+				while (readingBuffer.isReadable() && !readHead) {
+					bt = (int) readingBuffer.readByte();
 					if (bt == 0) {//Терминальный ноль
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
@@ -72,8 +79,6 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 					}
 				}
 			}
-		} finally {
-			ReferenceCountUtil.release(msg);
 		}
 	}
 
