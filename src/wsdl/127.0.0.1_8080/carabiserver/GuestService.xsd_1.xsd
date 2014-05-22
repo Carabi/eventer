@@ -8,6 +8,10 @@
 
 <xs:element name="getOracleUserIDResponse" type="tns:getOracleUserIDResponse"/>
 
+<xs:element name="getUserInfo" type="tns:getUserInfo"/>
+
+<xs:element name="getUserInfoResponse" type="tns:getUserInfoResponse"/>
+
 <xs:element name="getWebUserInfo" type="tns:getWebUserInfo"/>
 
 <xs:element name="getWebUserInfoResponse" type="tns:getWebUserInfoResponse"/>
@@ -55,6 +59,18 @@
 <xs:complexType name="CarabiException">
 <xs:sequence>
 <xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUserInfo">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUserInfoResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
 </xs:sequence>
 </xs:complexType>
 

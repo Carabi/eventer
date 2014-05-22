@@ -4,6 +4,15 @@
 <xsd:import namespace="http://soap.server.carabi.ru/" schemaLocation="http://127.0.0.1:8080/carabiserver/GuestService?xsd=1"/>
 </xsd:schema>
 </types>
+<message name="getUserInfo">
+<part name="parameters" element="tns:getUserInfo"/>
+</message>
+<message name="getUserInfoResponse">
+<part name="parameters" element="tns:getUserInfoResponse"/>
+</message>
+<message name="CarabiException">
+<part name="fault" element="tns:CarabiException"/>
+</message>
 <message name="wellcomeNN">
 <part name="parameters" element="tns:wellcomeNN"/>
 </message>
@@ -25,9 +34,6 @@
 <message name="RegisterException">
 <part name="fault" element="tns:RegisterException"/>
 </message>
-<message name="CarabiException">
-<part name="fault" element="tns:CarabiException"/>
-</message>
 <message name="getWebUserInfo">
 <part name="parameters" element="tns:getWebUserInfo"/>
 </message>
@@ -47,6 +53,11 @@
 <part name="parameters" element="tns:unauthorizeResponse"/>
 </message>
 <portType name="GuestService">
+<operation name="getUserInfo">
+<input wsam:Action="http://soap.server.carabi.ru/GuestService/getUserInfoRequest" message="tns:getUserInfo"/>
+<output wsam:Action="http://soap.server.carabi.ru/GuestService/getUserInfoResponse" message="tns:getUserInfoResponse"/>
+<fault message="tns:CarabiException" name="CarabiException" wsam:Action="http://soap.server.carabi.ru/GuestService/getUserInfo/Fault/CarabiException"/>
+</operation>
 <operation name="wellcomeNN">
 <input wsam:Action="http://soap.server.carabi.ru/GuestService/wellcomeNNRequest" message="tns:wellcomeNN"/>
 <output wsam:Action="http://soap.server.carabi.ru/GuestService/wellcomeNNResponse" message="tns:wellcomeNNResponse"/>
@@ -78,6 +89,18 @@
 </portType>
 <binding name="GuestServicePortBinding" type="tns:GuestService">
 <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+<operation name="getUserInfo">
+<soap:operation soapAction=""/>
+<input>
+<soap:body use="literal"/>
+</input>
+<output>
+<soap:body use="literal"/>
+</output>
+<fault name="CarabiException">
+<soap:fault name="CarabiException" use="literal"/>
+</fault>
+</operation>
 <operation name="wellcomeNN">
 <soap:operation soapAction=""/>
 <input>

@@ -35,6 +35,7 @@ public class CarabiMessage {
 		autosynch(5), //включить автоматическое получение событий
 		disableSync(6),
 		disableSyncAll(7),
+		fireEvent(8),
 		baseEventsTable(10),
 		baseEventsList(11),
 		error(Short.MAX_VALUE);
@@ -93,6 +94,8 @@ public class CarabiMessage {
 				return new DisableSync(message, messageTypeCode, sessionContextChannel);
 			case disableSyncAll:
 				return new DisableSyncAll(message, messageTypeCode, sessionContextChannel);
+			case fireEvent:
+				return new FireEvent(message, messageTypeCode, sessionContextChannel);
 			default:
 				return new CarabiMessage(message, messageTypeCode, sessionContextChannel);
 		}
@@ -266,6 +269,20 @@ class DisableSyncAll extends CarabiMessage {
 	}
 }
 
+class FireEvent extends CarabiMessage {
+	public FireEvent(String src, short type, ChannelHandlerContext sessionContextChannel) {
+		super(src, type, sessionContextChannel);
+	}
+	@Override
+	public void process(String token) {
+		try {
+			ClientSessionHolder.fireEvent(getText());
+		} catch (Exception ex) {
+			Logger.getLogger(FireEvent.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+}
+
 class BaseEventsTable extends CarabiMessage {
 	boolean force;
 	public BaseEventsTable(String src, short type, boolean force, ChannelHandlerContext sessionContextChannel) {
@@ -287,7 +304,7 @@ class BaseEventsTable extends CarabiMessage {
 			if (force || !answer.equals(getText())) {
 				CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.baseEventsTable.getCode(), answer);
 			}
-			ClientSessionHolder.setLaseEvent(token, getType(), answer);
+			ClientSessionHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsTable.class.getName()).log(Level.SEVERE, null, ex);
 			if (force) {
@@ -312,7 +329,7 @@ class BaseEventsList extends CarabiMessage {
 			if (force || !answer.equals(getText())) {
 				CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.baseEventsTable.getCode(), answer);
 			}
-			ClientSessionHolder.setLaseEvent(token, getType(), answer);
+			ClientSessionHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsList.class.getName()).log(Level.SEVERE, null, ex);
 			CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.error.getCode(), ex.getMessage());

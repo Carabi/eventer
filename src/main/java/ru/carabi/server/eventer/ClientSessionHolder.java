@@ -2,6 +2,7 @@ package ru.carabi.server.eventer;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.ConcurrentSet;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
@@ -12,7 +13,10 @@ import java.util.logging.Logger;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.json.Json;
+import javax.json.JsonObject;
 import javax.xml.bind.DatatypeConverter;
+import ru.carabi.server.soap.CarabiException_Exception;
 
 /**
  * Контейнер клиентских сессий.
@@ -42,7 +46,6 @@ public class ClientSessionHolder {
 	public static boolean addSession(String eventerToken, ChannelHandlerContext sessionContextChannel) {
 		try {
 			String soapToken = decrypt(eventerToken);
-			logger.log(Level.INFO, "{0}", SoapGateway.guestServicePort.getOracleUserID(soapToken));
 			SessionTimer sessionTimer = new SessionTimer(eventerToken, soapToken, sessionContextChannel);
 			sessions.put(eventerToken, sessionTimer);
 			channels.add(sessionContextChannel);
@@ -62,11 +65,15 @@ public class ClientSessionHolder {
 //		return sessions.get(token);
 //	}
 	public static void delSession(String token) {
-		SessionTimer sessionTimer = sessions.remove(token);
-		if (sessionTimer != null) {
-			sessionTimer.active = false;
-			channels.remove(sessionTimer.sessionContextChannel);
+		if (token == null) {
+			return;
 		}
+		SessionTimer sessionTimer = sessions.remove(token);
+		if (sessionTimer == null) {
+			return;
+		}
+		sessionTimer.active = false;
+		channels.remove(sessionTimer.sessionContextChannel);
 	}
 
 	/**
@@ -75,17 +82,26 @@ public class ClientSessionHolder {
 	 */
 	private static class SessionTimer implements Runnable {
 		boolean active = true;
+		String schema;
+		String login;
+		int userId;
 		String soapToken;
 		String eventerToken;
 		ChannelHandlerContext sessionContextChannel;
 		Set<CarabiMessage.Type> whatToSend = new ConcurrentSet<>();//типы событий, которые должны приходить клиенту автоматически
 		Map<CarabiMessage.Type, String> oldEvents = new ConcurrentHashMap<>();//события по типам, приходившие клиенту ранее
 		
-		SessionTimer(String eventerToken, String soapToken, ChannelHandlerContext session) {
+		SessionTimer(String eventerToken, String soapToken, ChannelHandlerContext session) throws CarabiException_Exception {
 			active = true;
 			this.eventerToken = eventerToken;
 			this.soapToken = soapToken;
 			this.sessionContextChannel = session;
+			String userInfoJson = SoapGateway.guestServicePort.getUserInfo(soapToken);
+			logger.info(userInfoJson);
+			JsonObject userInfo = Json.createReader(new StringReader(userInfoJson)).readObject();
+			schema = userInfo.getString("schema");
+			login = userInfo.getString("login");
+			userId = userInfo.getInt("carabiUserID");
 		}
 		
 		@Override
@@ -166,7 +182,24 @@ public class ClientSessionHolder {
 		sessions.get(eventerToken).whatToSend.clear();
 	}
 	
-	public static void setLaseEvent(String eventerToken, CarabiMessage.Type eventType, String eventText) {
+	public static void setLastEvent(String eventerToken, CarabiMessage.Type eventType, String eventText) {
 		sessions.get(eventerToken).oldEvents.put(eventType, eventText);
+	}
+	
+	public static void fireEvent(String encryptedEventPackage) throws Exception {
+		String eventPackageJson = decrypt(encryptedEventPackage);
+		logger.log(Level.FINE, "fireEvent: {0}", eventPackageJson);
+		JsonObject eventPackage = Json.createReader(new StringReader(eventPackageJson)).readObject();
+		String schema = eventPackage.getString("schema");
+		String login = eventPackage.getString("login");
+		int eventcode = eventPackage.getInt("eventcode");
+		String message = eventPackage.getString("message");
+		for (SessionTimer session: sessions.values()) {
+			logger.info(session.login);
+			if (schema.equals(session.schema) && (login == null || login.isEmpty() || login.equals(session.login))) {
+				logger.fine("firing!");
+				CarabiMessage.sendAnswer(session.sessionContextChannel, (short) eventcode, message);
+			}
+		}
 	}
 }

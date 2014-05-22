@@ -25,7 +25,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
 	private short currentMessageType;
 	private String token;
-	private final ByteBuf readingBuffer = Unpooled.directBuffer();
+	private ByteBuf readingBuffer = null;// = Unpooled.directBuffer();
 	private ByteBuf messageBuffer;
 
 	@Override
@@ -36,6 +36,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 		clientIDCounter += 1;
 		logger.info("channelRegistered");
 		logger.setLevel(Level.FINE);
+		readingBuffer = Unpooled.directBuffer();
 	}
 	
 	/**
@@ -105,6 +106,8 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 		super.channelUnregistered(ctx); //To change body of generated methods, choose Tools | Templates.
 		logger.info("channelUnregistered");
 		ClientSessionHolder.delSession(token);
+		readingBuffer.clear();
+		readingBuffer.release();
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
