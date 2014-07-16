@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonReader;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.ws.Holder;
 import ru.carabi.server.soap.CarabiException_Exception;
 import ru.carabi.server.soap.CarabiOracleException_Exception;
@@ -36,8 +37,10 @@ public class CarabiMessage {
 		disableSync(6),
 		disableSyncAll(7),
 		fireEvent(8),
+		shutdown(9),
 		baseEventsTable(10),
 		baseEventsList(11),
+		textMessage(12),
 		error(Short.MAX_VALUE);
 		
 		private short code;
@@ -52,7 +55,7 @@ public class CarabiMessage {
 			return code;
 		}
 		
-		private static Map<Short, Type> codeValueMap = new ConcurrentHashMap<>(10);
+		private final static Map<Short, Type> codeValueMap = new ConcurrentHashMap<>(16);
 		
 		static {
 			for (Type type: Type.values()) {
@@ -66,69 +69,79 @@ public class CarabiMessage {
 	
 	private final Type type;
 	private final String text;
-	final ChannelHandlerContext sessionContextChannel;
+	private final ChannelHandlerContext ctx;
+	private final MessagesHandler client;
 	
 	/**
 	 * Фабрика входящих сообщений.
 	 * @param message Строка сообщения
 	 * @param currentMessageType Код типа сообщенияи
-	 * @param sessionContextChannel Канал сессии
+	 * @param ctx Канал сессии
 	 * @return формализованное сообщение для обработки.
 	 */
-	static CarabiMessage readCarabiMessage(String message, short messageTypeCode, ChannelHandlerContext sessionContextChannel) {
+	static CarabiMessage readCarabiMessage(String message, short messageTypeCode, MessagesHandler client) {
 		Type messageType= Type.getTypeByCode(messageTypeCode);
-		
+		if (messageType == null) {
+			throw new IllegalArgumentException("Unknown messageTypeCode: " + messageTypeCode);
+		}
 		switch (messageType) {
 			case ping:
-				return new Ping(message, messageTypeCode, sessionContextChannel);
+				return new Ping(message, messageTypeCode, client);
 			case pong:
-				return new Pong(message, messageTypeCode, sessionContextChannel);
+				return new Pong(message, messageTypeCode, client);
 			case auth:
-				return new Auth(message, messageTypeCode, sessionContextChannel);
-			case synch: {
-				return new Sync(message, messageTypeCode, sessionContextChannel);
-			}
+				return new Auth(message, messageTypeCode, client);
+			case synch: 
+				return new Sync(message, messageTypeCode, client);
 			case autosynch:
-				return new Autosynch(message, messageTypeCode, sessionContextChannel);
+				return new Autosynch(message, messageTypeCode, client);
 			case disableSync:
-				return new DisableSync(message, messageTypeCode, sessionContextChannel);
+				return new DisableSync(message, messageTypeCode, client);
 			case disableSyncAll:
-				return new DisableSyncAll(message, messageTypeCode, sessionContextChannel);
+				return new DisableSyncAll(message, messageTypeCode, client);
 			case fireEvent:
-				return new FireEvent(message, messageTypeCode, sessionContextChannel);
+				return new FireEvent(message, messageTypeCode, client);
+			case shutdown:
+				return new Shutdown(message, messageTypeCode, client);
 			default:
-				return new CarabiMessage(message, messageTypeCode, sessionContextChannel);
+				return new CarabiMessage(message, messageTypeCode, client);
 		}
 	}
 	
 	/**
 	 * Фабрика исходящих сообщений.
 	 * @param prevMessage Предыдущее сообщение или на которое отвечаем (если не генерируем событие сами)
-	 * @param currentMessageType Код типа сообщенияи
+	 * @param currentMessageType Код типа сообщения
 	 * @param force обязательно отправлять сообщение, даже если ошибка или нет новых событий
 	 * @return формализованное сообщение для отправки.
 	 */
-	static CarabiMessage writeCarabiMessage(String prevMessage, short messageTypeCode, boolean force, ChannelHandlerContext sessionContextChannel) {
+	static CarabiMessage writeCarabiMessage(String prevMessage, short messageTypeCode, boolean force, MessagesHandler client) {
 		Type messageType= Type.getTypeByCode(messageTypeCode);
 		switch (messageType) {
 			case baseEventsTable:
-				return new BaseEventsTable(prevMessage, messageTypeCode, force, sessionContextChannel);
+				return new BaseEventsTable(prevMessage, messageTypeCode, force, client);
 			case baseEventsList:
-				return new BaseEventsList(prevMessage, messageTypeCode, force, sessionContextChannel);
+				return new BaseEventsList(prevMessage, messageTypeCode, force, client);
 			default:
-				return new CarabiMessage(prevMessage, messageTypeCode, sessionContextChannel);
+				return new CarabiMessage(prevMessage, messageTypeCode, client);
 		}
 	}
-	public CarabiMessage(String text, short type, ChannelHandlerContext sessionContextChannel) {
+	public CarabiMessage(String text, short type, MessagesHandler client) {
 		this.text = text;
 		this.type = Type.getTypeByCode(type);
-		this.sessionContextChannel = sessionContextChannel;
+		this.ctx = client.getChannel();
+		this.client = client;
 	}
 
 	public ChannelHandlerContext getCtx() {
-		return sessionContextChannel;
+		return ctx;
 	}
 	
+	
+	public MessagesHandler getClient() {
+		return client;
+	}
+
 	public String getText() {
 		return text;
 	}
@@ -138,13 +151,23 @@ public class CarabiMessage {
 	}
 	
 	/**
-	 * Обработка пришедшего сообщения и/или создание ответа.
+	 * Обработка пришедшего сообщения (возможно, с созданием ответа).
 	 * @param token токен подключившегося клиента
 	 */
-	public void process(String token) {
+	public void handle(String token) {
 		short code = CarabiMessage.Type.reserved.getCode();
 		String answer = "Клиент отправил сообщение: " + text + " " + type.name();
-		sendAnswer(sessionContextChannel, code, answer);
+		sendAnswer(ctx, code, answer);
+	}
+	
+	/**
+	 * Создание сообщения по инициативе сервера.
+	 * @param token токен подключившегося клиента
+	 */
+	public void post(String token) {
+		short code = CarabiMessage.Type.reserved.getCode();
+		String answer = "Отправка сообщения клиенту: " + text + " " + type.name();
+		sendAnswer(ctx, code, answer);
 	}
 	
 	/**
@@ -174,41 +197,76 @@ public class CarabiMessage {
 		return types;
 	}
 }
-class Ping extends CarabiMessage {
-	public Ping(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+
+class Shutdown extends CarabiMessage {
+	public Shutdown(String text, short type, MessagesHandler client) {
+		super(text, type, client);
 	}
 	@Override
-	public void process(String token) {
+	public void handle(String token) {
+		//отключение должно производиться в два этапа: получение ключа и отправка пакета с зашифрованным ключом.
+		String encryptedKey = getText();
+		if (encryptedKey == null || encryptedKey.equals("")) {
+			int keySize = 64;
+			byte[] bytes = new byte[keySize];
+			for (int i=0; i<keySize; i++) {
+				bytes[i] = (byte) Math.round(Math.random() * 127);
+			}
+			String key = DatatypeConverter.printBase64Binary(bytes);
+			System.out.println(key);
+			short code = CarabiMessage.Type.shutdown.getCode();
+			getClient().setShutdownKey(key);
+			sendAnswer(getCtx(), code, key);
+		} else {
+			try {
+				String key = ClientsHolder.decrypt(encryptedKey);
+				if (key.equals(getClient().getShutdownKey())) {
+					short code = CarabiMessage.Type.shutdown.getCode();
+					sendAnswer(getCtx(), code, "shutdownOK");
+					Main.shutdown();
+				}
+			} catch (Exception e) {
+				
+			}
+		}
+	}
+}
+
+class Ping extends CarabiMessage {
+	public Ping(String src, short type, MessagesHandler client) {
+		super(src, type, client);
+	}
+	@Override
+	public void handle(String token) {
 		short code = CarabiMessage.Type.pong.getCode();
 		String answer = "PONG ПОНГ";
-		sendAnswer(sessionContextChannel, code, answer);
+		sendAnswer(getCtx(), code, answer);
 	}
 }
 
 class Pong extends CarabiMessage {
-	public Pong(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public Pong(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
+	public void handle(String token) {
 		//не отвечаем
 	}
 }
 
 class Auth extends CarabiMessage {
-	public Auth(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public Auth(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
-		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
+	public void handle(String token) {
+		if (ClientsHolder.clientlIsRegistered(token)) {
 			return;
 		}
-		if (ClientSessionHolder.addSession(token, getCtx())) {
-		short code = CarabiMessage.Type.auth.getCode();
+		if (ClientsHolder.addClient(token, getClient())) {
+			short code = CarabiMessage.Type.auth.getCode();
 			String answer = "Клиент " + token + " авторизован!";
-			sendAnswer(sessionContextChannel, code, answer);
+			sendAnswer(getCtx(), code, answer);
 		} else {
 			getCtx().disconnect();
 		}
@@ -216,67 +274,67 @@ class Auth extends CarabiMessage {
 }
 
 class Sync extends CarabiMessage {
-	public Sync(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public Sync(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
-		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
+	public void handle(String token) {
+		if (ClientsHolder.clientlIsRegistered(token)) {
 			Collection<CarabiMessage.Type> eventsToSend = parseMessageTypes(getText());
 			for (CarabiMessage.Type type: eventsToSend) {
-				CarabiMessage answer = writeCarabiMessage("", type.getCode(), true, sessionContextChannel);
-				answer.process(token);
+				CarabiMessage answer = writeCarabiMessage("", type.getCode(), true, getClient());
+				answer.post(token);
 			}
 		}
 	}
 }
 
 class Autosynch extends CarabiMessage {
-	public Autosynch(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public Autosynch(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
-		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
+	public void handle(String token) {
+		if (ClientsHolder.clientlIsRegistered(token)) {
 			Collection<CarabiMessage.Type> types = parseMessageTypes(getText());
-			ClientSessionHolder.addEventTypes(token, types);
+			ClientsHolder.addEventTypes(token, types);
 		}
 	}
 }
 
 class DisableSync extends CarabiMessage {
-	public DisableSync(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public DisableSync(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
-		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
+	public void handle(String token) {
+		if (ClientsHolder.clientlIsRegistered(token)) {
 			Collection<CarabiMessage.Type> types = parseMessageTypes(getText());
-			ClientSessionHolder.removeEventTypes(token, types);
+			ClientsHolder.removeEventTypes(token, types);
 		}
 	}
 }
 
 class DisableSyncAll extends CarabiMessage {
-	public DisableSyncAll(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public DisableSyncAll(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
-		if (ClientSessionHolder.channelIsRegistered(getCtx())) {
-			ClientSessionHolder.clearEventTypes(token);
+	public void handle(String token) {
+		if (ClientsHolder.clientlIsRegistered(token)) {
+			ClientsHolder.clearEventTypes(token);
 		}
 	}
 }
 
 class FireEvent extends CarabiMessage {
-	public FireEvent(String src, short type, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public FireEvent(String src, short type, MessagesHandler client) {
+		super(src, type, client);
 	}
 	@Override
-	public void process(String token) {
+	public void handle(String token) {
 		try {
-			ClientSessionHolder.fireEvent(getText());
+			ClientsHolder.fireEvent(getText());
 		} catch (Exception ex) {
 			Logger.getLogger(FireEvent.class.getName()).log(Level.SEVERE, null, ex);
 		}
@@ -285,12 +343,12 @@ class FireEvent extends CarabiMessage {
 
 class BaseEventsTable extends CarabiMessage {
 	boolean force;
-	public BaseEventsTable(String src, short type, boolean force, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public BaseEventsTable(String src, short type, boolean force, MessagesHandler client) {
+		super(src, type, client);
 		this.force = force;
 	}
 	@Override
-	public void process(String token) {
+	public void post(String token) {
 		try {
 			String answer;
 			Holder<List<QueryParameter>> parameters = new Holder<>();
@@ -299,16 +357,16 @@ class BaseEventsTable extends CarabiMessage {
 			days.setName("DAYS");
 			days.setValue("1");
 			parameters.value.add(days);
-			SoapGateway.queryServicePort.runStoredQuery(ClientSessionHolder.getSoapToken(token), "", "GET_NOTIFY_MESSAGES", -1, true, parameters);
+			SoapGateway.queryServicePort.runStoredQuery(ClientsHolder.getSoapToken(token), "", "GET_NOTIFY_MESSAGES", -1, true, parameters);
 			answer = parameters.value.get(0).getValue();
 			if (force || !answer.equals(getText())) {
-				CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.baseEventsTable.getCode(), answer);
+				CarabiMessage.sendAnswer(getCtx(), getType().getCode(), answer);
 			}
-			ClientSessionHolder.setLastEvent(token, getType(), answer);
+			ClientsHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsTable.class.getName()).log(Level.SEVERE, null, ex);
 			if (force) {
-				CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.error.getCode(), ex.getMessage());
+				CarabiMessage.sendAnswer(getCtx(), CarabiMessage.Type.error.getCode(), ex.getMessage());
 			}
 		}
 	}
@@ -316,23 +374,23 @@ class BaseEventsTable extends CarabiMessage {
 }
 class BaseEventsList extends CarabiMessage {
 	boolean force;
-	public BaseEventsList(String src, short type, boolean force, ChannelHandlerContext sessionContextChannel) {
-		super(src, type, sessionContextChannel);
+	public BaseEventsList(String src, short type, boolean force, MessagesHandler client) {
+		super(src, type, client);
 		this.force = force;
 	}
 	//answer = messageServicePort.getNotifyMessages(getSoapToken(token));
 	@Override
-	public void process(String token) {
+	public void post(String token) {
 		String answer;
 		try {
-			answer = SoapGateway.messageServicePort.getNotifyMessages(ClientSessionHolder.getSoapToken(token));
+			answer = SoapGateway.messageServicePort.getNotifyMessages(ClientsHolder.getSoapToken(token));
 			if (force || !answer.equals(getText())) {
-				CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.baseEventsTable.getCode(), answer);
+				CarabiMessage.sendAnswer(getCtx(), getType().getCode(), answer);
 			}
-			ClientSessionHolder.setLastEvent(token, getType(), answer);
+			ClientsHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsList.class.getName()).log(Level.SEVERE, null, ex);
-			CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.error.getCode(), ex.getMessage());
+			CarabiMessage.sendAnswer(getCtx(), CarabiMessage.Type.error.getCode(), ex.getMessage());
 		}
 	}
 }

@@ -17,11 +17,25 @@ import static ru.carabi.server.eventer.CarabiMessage.Type.auth;
  * Каждое сообщение включает два байта с типом, строку с данными и терминальный ноль,
  * объём сообщения не должен превышать 10 КиБ
  */
-public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
-	private static final Logger logger = Logger.getLogger(NettyMessagesFilter.class.getName());
+public class MessagesHandler extends ChannelInboundHandlerAdapter {
+	private static final Logger logger = Logger.getLogger(MessagesHandler.class.getName());
 	private ChannelHandlerContext myctx;
 	private static int clientIDCounter = 0;
 	private int clientID;
+	/**
+	 * для закрытия программы клиент получает делает запрос, и получает в ответ
+	 * случайный ключ, сохраняемый в этом поле. В следующем запросе клиенту следует
+	 * прислать этот ключ, зашифрованный правильным способом.
+	 */
+	private String shutdownKey;
+
+	public String getShutdownKey() {
+		return shutdownKey;
+	}
+
+	public void setShutdownKey(String shutdownKey) {
+		this.shutdownKey = shutdownKey;
+	}
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
 	private short currentMessageType;
 	private String token;
@@ -69,12 +83,12 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 					if (bt == 0) {//Терминальный ноль
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
-						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, currentMessageType, ctx);
+						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, currentMessageType, this);
 						if (carabiMessage.getType() == auth) {
 							token = message;
 						}
 						ReferenceCountUtil.release(messageBuffer);
-						carabiMessage.process(token);
+						carabiMessage.handle(token);
 					} else {
 						messageBuffer.writeByte(bt);
 					}
@@ -105,7 +119,7 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 	public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
 		super.channelUnregistered(ctx); //To change body of generated methods, choose Tools | Templates.
 		logger.info("channelUnregistered");
-		ClientSessionHolder.delSession(token);
+		ClientsHolder.delClient(token);
 		readingBuffer.clear();
 		readingBuffer.release();
 		if (myctx != ctx) {
@@ -118,5 +132,9 @@ public class NettyMessagesFilter extends ChannelInboundHandlerAdapter {
 		// Close the connection when an exception is raised.
 		logger.log(Level.SEVERE, "", cause);
 		ctx.close();
+	}
+
+	ChannelHandlerContext getChannel() {
+		return myctx;
 	}
 }

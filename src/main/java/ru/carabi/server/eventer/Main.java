@@ -6,7 +6,7 @@ import java.util.ResourceBundle;
 
 /**
  * Главный класс Carabi Eventer.
- * Парсинг параметров и запуск {@link TCPNettyListener}
+ * Парсинг параметров и запуск {@link NettyListener}
  * @author sasha
  */
 public class Main {
@@ -32,11 +32,14 @@ public class Main {
 		}
 		try {
 			SoapGateway.init(useSoapServer);
-			new TCPNettyListener().start(port);
+			tcpNettyListener = new NettyListener();
+			tcpNettyListener.start(port);
 		} catch (Exception ex) {
 			System.out.println("error: " + ex.getMessage());
 		}
 	}
+	
+	private static NettyListener tcpNettyListener;
 
 	private static void printHelp() {
 		System.out.println("Usage: java ru.carabi.server.eventer.Main [http://server/soap_service/ [listen_port]]\nDefault are:\n" + settings.getString("SOAP_SERVER") + "\n" + settings.getString("LISTEN_PORT"));
@@ -49,5 +52,9 @@ public class Main {
 		} catch(MalformedURLException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	public static void shutdown() {
+		tcpNettyListener.shutdown();
 	}
 }

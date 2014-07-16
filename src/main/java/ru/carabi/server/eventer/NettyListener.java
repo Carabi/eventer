@@ -12,13 +12,13 @@ import java.net.DatagramSocket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class TCPNettyListener {
-	private static final Logger logger = Logger.getLogger(TCPNettyListener.class.getName());
+public class NettyListener {
+	private static final Logger logger = Logger.getLogger(NettyListener.class.getName());
 	private boolean released;
 	private final DatagramSocket dsocket = null;
-
-
-
+	private EventLoopGroup bossGroup;
+	private EventLoopGroup workerGroup;
+	
 	public boolean isReleased() {
 		return released;
 	}
@@ -26,8 +26,8 @@ public class TCPNettyListener {
 	public void start(int port) {
 		logger.log(Level.INFO, "starting listener");
 		logger.log(Level.INFO, "listening on port {0}", port);
-		EventLoopGroup bossGroup = new NioEventLoopGroup();
-		EventLoopGroup workerGroup = new NioEventLoopGroup();
+		bossGroup = new NioEventLoopGroup();
+		workerGroup = new NioEventLoopGroup();
 		try {
 			ServerBootstrap b = new ServerBootstrap();
 			b.group(bossGroup, workerGroup)
@@ -46,7 +46,7 @@ public class TCPNettyListener {
 //					} else {
 //						logger.severe("Not a ru.carabi.server.messager.CarabiMessageListener!");
 //					}
-					ch.pipeline().addLast(new NettyMessagesFilter());
+					ch.pipeline().addLast(new MessagesHandler());
 				}
 			})
 			.option(ChannelOption.SO_BACKLOG, 128)
@@ -60,10 +60,15 @@ public class TCPNettyListener {
 			// shut down your server.
 			f.channel().closeFuture().sync();
 		} catch (InterruptedException ex) {
-			Logger.getLogger(TCPNettyListener.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(NettyListener.class.getName()).log(Level.SEVERE, null, ex);
 		} finally {
 			workerGroup.shutdownGracefully();
 			bossGroup.shutdownGracefully();
 		}
+	}
+
+	void shutdown() {
+		workerGroup.shutdownGracefully();
+		bossGroup.shutdownGracefully();
 	}
 }
