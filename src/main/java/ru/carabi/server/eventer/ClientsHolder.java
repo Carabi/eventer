@@ -210,7 +210,7 @@ public class ClientsHolder {
 		JsonObject eventPackage = Json.createReader(new StringReader(eventPackageJson)).readObject();
 		String schema = eventPackage.getString("schema");
 		String login = eventPackage.getString("login");
-		int eventcode = eventPackage.getInt("eventcode");
+		int eventCode = eventPackage.getInt("eventcode");
 		String message = eventPackage.getString("message");
 		for (SessionTimer session: sessions.values()) {
 			logger.log(Level.FINE, "messsage to {0}", session.login);
@@ -218,7 +218,7 @@ public class ClientsHolder {
 			boolean messageToSchema = (login == null || login.equals("")) && session.schema.equals(schema);
 			if (messageToUser || messageToSchema) {
 				logger.fine("firing!");
-				CarabiMessage.sendAnswer(session.sessionContextChannel, (short) eventcode, message);
+				CarabiMessage.sendMessage(session.sessionContextChannel, (short) eventCode, message);
 			}
 		}
 	}

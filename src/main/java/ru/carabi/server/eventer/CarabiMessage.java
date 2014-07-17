@@ -120,6 +120,8 @@ public class CarabiMessage {
 				return new BaseEventsTable(prevMessage, messageType, force, client);
 			case baseEventsList:
 				return new BaseEventsList(prevMessage, messageType, force, client);
+			case textMessage:
+				
 			default:
 				return new CarabiMessage(prevMessage, messageType, client);
 		}
@@ -153,9 +155,8 @@ public class CarabiMessage {
 	 * @param token токен подключившегося клиента
 	 */
 	public void handle(String token) {
-		short code = CarabiMessage.Type.reserved.getCode();
-		String answer = "Клиент отправил сообщение: " + text + " " + type.name();
-		sendAnswer(ctx, code, answer);
+		String answer = "Got the message: " + text + " " + type.name();
+		sendMessage(ctx, Type.reserved, answer);
 	}
 	
 	/**
@@ -163,19 +164,21 @@ public class CarabiMessage {
 	 * @param token токен подключившегося клиента
 	 */
 	public void post(String token) {
-		short code = CarabiMessage.Type.reserved.getCode();
-		String answer = "Отправка сообщения клиенту: " + text + " " + type.name();
-		sendAnswer(ctx, code, answer);
+		sendMessage(ctx, CarabiMessage.Type.reserved, text);
 	}
 	
 	/**
-	 * Отправка ответа.
+	 * Отправка сообщения.
 	 * Отправка кода и текста сообщения с терминальным нулём в канал, переданный методу {@link readCarabiMessage}
 	 * @param sessionContextChannel
-	 * @param code код отправляемого ответа
-	 * @param answer текст отправляемого ответа
+	 * @param type тип отправляемого сообщения
+	 * @param answer текст отправляемого сообщения
 	 */
-	protected static void sendAnswer(ChannelHandlerContext sessionContextChannel, short code, String answer) {
+	protected static void sendMessage(ChannelHandlerContext sessionContextChannel, Type type, String answer) {
+		short code = type.getCode();
+		sendMessage(sessionContextChannel, code, answer);
+	}
+	protected static void sendMessage(ChannelHandlerContext sessionContextChannel, short code, String answer) {
 		logger.fine(answer);
 		byte[] dataToPost = answer.getBytes(Charset.forName("UTF-8"));
 		ByteBuf buffer = sessionContextChannel.alloc().buffer(dataToPost.length + 3);
@@ -188,7 +191,7 @@ public class CarabiMessage {
 	protected Collection<CarabiMessage.Type> parseMessageTypes(String messageTypesJson) {
 		JsonReader eventsData = Json.createReader(new StringReader(messageTypesJson));
 		JsonArray eventsToSend = eventsData.readArray();
-		Collection<CarabiMessage.Type> types = new ArrayList<>();
+		Collection<Type> types = new ArrayList<>();
 		for (int i=0, n=eventsToSend.size(); i<n; i++) {
 			types.add(Type.getTypeByCode((short)eventsToSend.getInt(i)));
 		}
@@ -211,15 +214,13 @@ class Shutdown extends CarabiMessage {
 				bytes[i] = (byte) Math.round(Math.random() * 127);
 			}
 			String key = DatatypeConverter.printBase64Binary(bytes);
-			short code = CarabiMessage.Type.shutdown.getCode();
 			getClient().getUtilProperties().setProperty("shutdownKey", key);
-			sendAnswer(getCtx(), code, key);
+			sendMessage(getCtx(), CarabiMessage.Type.shutdown, key);
 		} else {
 			try {
 				String key = ClientsHolder.decrypt(encryptedKey);
 				if (key.equals(getClient().getUtilProperties().getProperty("shutdownKey"))) {
-					short code = CarabiMessage.Type.shutdown.getCode();
-					sendAnswer(getCtx(), code, "shutdownOK");
+					sendMessage(getCtx(), CarabiMessage.Type.shutdown, "shutdownOK");
 					Main.shutdown();
 				}
 			} catch (Exception e) {
@@ -235,15 +236,13 @@ class Ping extends CarabiMessage {
 	}
 	@Override
 	public void handle(String token) {
-		short code = CarabiMessage.Type.pong.getCode();
 		String answer = "PONG ПОНГ";
-		sendAnswer(getCtx(), code, answer);
+		sendMessage(getCtx(), Type.pong, answer);
 	}
 	
 	@Override
 	public void post(String token){
-		short code = CarabiMessage.Type.ping.getCode();
-		sendAnswer(getCtx(), code, getText());
+		sendMessage(getCtx(), Type.ping, getText());
 	}
 }
 
@@ -276,9 +275,8 @@ class Auth extends CarabiMessage {
 			return;
 		}
 		if (ClientsHolder.addClient(token, getClient())) {
-			short code = CarabiMessage.Type.auth.getCode();
 			String answer = "Клиент " + token + " авторизован!";
-			sendAnswer(getCtx(), code, answer);
+			sendMessage(getCtx(), Type.auth, answer);
 		} else {
 			getCtx().disconnect();
 		}
@@ -292,8 +290,8 @@ class Sync extends CarabiMessage {
 	@Override
 	public void handle(String token) {
 		if (ClientsHolder.clientlIsRegistered(token)) {
-			Collection<CarabiMessage.Type> eventsToSend = parseMessageTypes(getText());
-			for (CarabiMessage.Type type: eventsToSend) {
+			Collection<Type> eventsToSend = parseMessageTypes(getText());
+			for (Type type: eventsToSend) {
 				CarabiMessage answer = writeCarabiMessage("", type, true, getClient());
 				answer.post(token);
 			}
@@ -372,13 +370,13 @@ class BaseEventsTable extends CarabiMessage {
 			SoapGateway.queryServicePort.runStoredQuery(ClientsHolder.getSoapToken(token), "", "GET_NOTIFY_MESSAGES", -1, true, parameters);
 			answer = parameters.value.get(0).getValue();
 			if (force || !answer.equals(getText())) {
-				CarabiMessage.sendAnswer(getCtx(), getType().getCode(), answer);
+				sendMessage(getCtx(), getType(), answer);
 			}
 			ClientsHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsTable.class.getName()).log(Level.SEVERE, null, ex);
 			if (force) {
-				CarabiMessage.sendAnswer(getCtx(), CarabiMessage.Type.error.getCode(), ex.getMessage());
+				sendMessage(getCtx(), Type.error, ex.getMessage());
 			}
 		}
 	}
@@ -397,12 +395,12 @@ class BaseEventsList extends CarabiMessage {
 		try {
 			answer = SoapGateway.messageServicePort.getNotifyMessages(ClientsHolder.getSoapToken(token));
 			if (force || !answer.equals(getText())) {
-				CarabiMessage.sendAnswer(getCtx(), getType().getCode(), answer);
+				sendMessage(getCtx(), getType(), answer);
 			}
 			ClientsHolder.setLastEvent(token, getType(), answer);
 		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
 			Logger.getLogger(BaseEventsList.class.getName()).log(Level.SEVERE, null, ex);
-			CarabiMessage.sendAnswer(getCtx(), CarabiMessage.Type.error.getCode(), ex.getMessage());
+			sendMessage(getCtx(), Type.error, ex.getMessage());
 		}
 	}
 }

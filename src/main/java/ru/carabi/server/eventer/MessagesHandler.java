@@ -74,9 +74,9 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
 						CarabiMessage.Type messageType= CarabiMessage.Type.getTypeByCode(messageTypeCode);
-				//		if (messageType == null) {
-				//			throw new IllegalArgumentException("Unknown messageTypeCode: " + messageTypeCode);
-				//		}
+						if (messageType == null) {
+							messageType = CarabiMessage.Type.error;
+						}
 						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, messageType, this);
 						if (carabiMessage.getType() == auth) {
 							token = message;
