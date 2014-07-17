@@ -36,16 +36,6 @@ public class NettyListener {
 				@Override
 				public void initChannel(SocketChannel ch) throws Exception {
 					logger.info("initChannel");
-//					MessageEndpoint endpoint = endpointFactory.createEndpoint(null);
-//					for (Class inter: endpoint.getClass().getInterfaces()) {
-//						logger.info(inter.getName());
-//					}
-//					if (endpoint instanceof ru.carabi.server.messager.CarabiMessageListener) {
-//						//((CarabiMessageListener)endpoint).onMessage(msg);
-//						logger.info("This is ru.carabi.server.messager.CarabiMessageListener endpoint");
-//					} else {
-//						logger.severe("Not a ru.carabi.server.messager.CarabiMessageListener!");
-//					}
 					ch.pipeline().addLast(new MessagesHandler());
 				}
 			})
@@ -55,9 +45,8 @@ public class NettyListener {
 			// Bind and start to accept incoming connections.
 			ChannelFuture f = b.bind(port).sync();
 
+			System.out.println("Started OK");
 			// Wait until the server socket is closed.
-			// In this example, this does not happen, but you can do that to gracefully
-			// shut down your server.
 			f.channel().closeFuture().sync();
 		} catch (InterruptedException ex) {
 			Logger.getLogger(NettyListener.class.getName()).log(Level.SEVERE, null, ex);
@@ -67,7 +56,7 @@ public class NettyListener {
 		}
 	}
 
-	void shutdown() {
+	public void shutdown() {
 		workerGroup.shutdownGracefully();
 		bossGroup.shutdownGracefully();
 	}

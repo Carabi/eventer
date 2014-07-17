@@ -13,8 +13,8 @@ import java.util.logging.Logger;
  * @author sasha
  */
 public class ShutdownEventer{
-	private static final ResourceBundle settings = ResourceBundle.getBundle("ru.carabi.server.eventer.Settings");
 	public static void main(String[] args) {
+		ResourceBundle settings = Main.settings;
 		int port = Integer.parseInt(settings.getString("LISTEN_PORT"));
 		try (Socket socket = new Socket("127.0.0.1", port)) {
 			OutputStream outputStream = socket.getOutputStream();

@@ -15,13 +15,13 @@ import ru.carabi.server.soap.QueryService_Service;
  * @author sasha
  */
 public class SoapGateway {
-	private static final ResourceBundle settings = ResourceBundle.getBundle("ru.carabi.server.eventer.Settings");
 	
 	static GuestService guestServicePort;
 	static MessageService messageServicePort;
 	static QueryService queryServicePort;
 	
 	public static void init(String soapServer) throws MalformedURLException {
+		ResourceBundle settings =Main.settings;
 		GuestService_Service guestService = new GuestService_Service(new URL(soapServer + settings.getString("GUEST_SERVICE")));
 		guestServicePort = guestService.getPort(GuestService.class);
 		MessageService_Service messageService = new MessageService_Service(new URL(soapServer + settings.getString("MESSAGE_SERVICE")));

@@ -6,6 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import java.nio.charset.Charset;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static ru.carabi.server.eventer.CarabiMessage.Type.auth;
@@ -22,22 +23,11 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	private ChannelHandlerContext myctx;
 	private static int clientIDCounter = 0;
 	private int clientID;
-	/**
-	 * для закрытия программы клиент получает делает запрос, и получает в ответ
-	 * случайный ключ, сохраняемый в этом поле. В следующем запросе клиенту следует
-	 * прислать этот ключ, зашифрованный правильным способом.
-	 */
-	private String shutdownKey;
 
-	public String getShutdownKey() {
-		return shutdownKey;
-	}
-
-	public void setShutdownKey(String shutdownKey) {
-		this.shutdownKey = shutdownKey;
-	}
+	private final Properties utilProperties = new Properties();//Свойства привязанные к клиенту, не имеющие отношения к протоколу
+	
 	private boolean readHead = true; //в данный момент читаем заголовок (два байта)
-	private short currentMessageType;
+	private short messageTypeCode;
 	private String token;
 	private ByteBuf readingBuffer = null;// = Unpooled.directBuffer();
 	private ByteBuf messageBuffer;
@@ -72,7 +62,7 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 				if (readingBuffer.readableBytes() < 2) {
 					return;
 				}
-				currentMessageType = readingBuffer.readShort();
+				messageTypeCode = readingBuffer.readShort();
 				readHead = false;
 				messageBuffer = Unpooled.directBuffer(10240);
 			}
@@ -83,7 +73,11 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 					if (bt == 0) {//Терминальный ноль
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
-						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, currentMessageType, this);
+						CarabiMessage.Type messageType= CarabiMessage.Type.getTypeByCode(messageTypeCode);
+				//		if (messageType == null) {
+				//			throw new IllegalArgumentException("Unknown messageTypeCode: " + messageTypeCode);
+				//		}
+						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, messageType, this);
 						if (carabiMessage.getType() == auth) {
 							token = message;
 						}
@@ -122,6 +116,9 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 		ClientsHolder.delClient(token);
 		readingBuffer.clear();
 		readingBuffer.release();
+//		if (utilProperties.getProperty("soapToken") != null) {
+//			SoapGateway.guestServicePort.unauthorize(utilProperties.getProperty("soapToken"), false);
+//		}
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
@@ -136,5 +133,8 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 
 	ChannelHandlerContext getChannel() {
 		return myctx;
+	}
+	public Properties getUtilProperties() {
+		return utilProperties;
 	}
 }

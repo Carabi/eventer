@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.json.Json;
@@ -46,6 +45,7 @@ public class ClientsHolder {
 	public static boolean addClient(String eventerToken, MessagesHandler client) {
 		try {
 			String soapToken = decrypt(eventerToken);
+			client.getUtilProperties().setProperty("soapToken", soapToken);
 			SessionTimer sessionTimer = new SessionTimer(eventerToken, soapToken, client);
 			sessions.put(eventerToken, sessionTimer);
 			new Thread(sessionTimer).start();
@@ -76,6 +76,8 @@ public class ClientsHolder {
 	 * По таймеру происходит опрос БД и отправка сообщений клиенту.
 	 */
 	private static class SessionTimer implements Runnable {
+		private static final int EVENT_INTERVAL = 5;//интервал таймера проверки событий в секундах
+		private static final int SESSION_INTERVAL = 5 * 60;//интервал обновления сессии
 		boolean active = true;
 		String schema;
 		String login;
@@ -103,25 +105,31 @@ public class ClientsHolder {
 		
 		@Override
 		public synchronized void run() {
+			int sessionCounter = 0;//
 			while (active && !sessionContextChannel.isRemoved()) {
+				//Проверяем наличие требуемых (whatToSend) событий
 				for (CarabiMessage.Type type: whatToSend) {
-					CarabiMessage event = CarabiMessage.writeCarabiMessage(oldEvents.get(type), type.getCode(), false, client);
+					CarabiMessage event = CarabiMessage.writeCarabiMessage(oldEvents.get(type), type, false, client);
 					event.post(eventerToken);
 				}
+				//пауза EVENT_INTERVAL
 				try {
-					wait(5000);
+					wait(EVENT_INTERVAL * 1000);
 				} catch (InterruptedException ex) {
 					active = false;
 					logger.log(Level.SEVERE, null, ex);
 				}
+				sessionCounter += EVENT_INTERVAL;
+				if (sessionCounter >= SESSION_INTERVAL) {
+					//Каждые SESSION_INTERVAL ставим testingSession true для уведомления сервера с базой
+					client.getUtilProperties().setProperty("testingSession", "true");
+					sessionCounter = 0;
+				}
+				//обмениваемся пингами с клиентом
+				CarabiMessage event = CarabiMessage.writeCarabiMessage("TEST_SESSION_PING", CarabiMessage.Type.ping, false, client);
+				event.post(eventerToken);
 			}
 		}
-		
-	}
-	
-	public static void sendPing(ChannelHandlerContext sessionContextChannel) {
-		String answer = "PING ПИНГ";
-		CarabiMessage.sendAnswer(sessionContextChannel, CarabiMessage.Type.ping.getCode(), answer);
 	}
 	
 	static String encrypt (String data) throws Exception {

@@ -10,7 +10,7 @@ import java.util.ResourceBundle;
  * @author sasha
  */
 public class Main {
-	private static final ResourceBundle settings = ResourceBundle.getBundle("ru.carabi.server.eventer.Settings");
+	public static final ResourceBundle settings = ResourceBundle.getBundle("eventer.Settings");
 	private static String useSoapServer;
 	public static void main(String[] args) {
 		int port = Integer.parseInt(settings.getString("LISTEN_PORT"));
@@ -32,14 +32,14 @@ public class Main {
 		}
 		try {
 			SoapGateway.init(useSoapServer);
-			tcpNettyListener = new NettyListener();
-			tcpNettyListener.start(port);
+			nettyListener = new NettyListener();
+			nettyListener.start(port);
 		} catch (Exception ex) {
 			System.out.println("error: " + ex.getMessage());
 		}
 	}
 	
-	private static NettyListener tcpNettyListener;
+	private static NettyListener nettyListener;
 
 	private static void printHelp() {
 		System.out.println("Usage: java ru.carabi.server.eventer.Main [http://server/soap_service/ [listen_port]]\nDefault are:\n" + settings.getString("SOAP_SERVER") + "\n" + settings.getString("LISTEN_PORT"));
@@ -55,6 +55,6 @@ public class Main {
 	}
 	
 	public static void shutdown() {
-		tcpNettyListener.shutdown();
+		nettyListener.shutdown();
 	}
 }
