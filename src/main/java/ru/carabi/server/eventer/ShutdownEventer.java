@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import ru.carabi.libs.CarabiFunc;
 
 /**
  * Клиент, отправляющий запросы для закрытия Eventer-а
@@ -21,7 +22,7 @@ public class ShutdownEventer{
 			InputStream inputStream = socket.getInputStream();
 			emptyShutdownRequest(outputStream);
 			String key = getResponse(inputStream);
-			String encryptedKey = ClientsHolder.encrypt(key);
+			String encryptedKey = CarabiFunc.encrypt(key);
 			encryptedKeyRequest(outputStream, encryptedKey);
 			assert "shutdownOK".equals(getResponse(inputStream));
 			System.out.println("Shutdown OK");

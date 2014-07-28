@@ -3,19 +3,16 @@ package ru.carabi.server.eventer;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.ConcurrentSet;
 import java.io.StringReader;
-import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.json.Json;
 import javax.json.JsonObject;
-import javax.xml.bind.DatatypeConverter;
+import ru.carabi.libs.CarabiFunc;
 import ru.carabi.server.soap.CarabiException_Exception;
 
 /**
@@ -26,10 +23,6 @@ import ru.carabi.server.soap.CarabiException_Exception;
  * @author sasha<kopilov.ad@gmail.com>
  */
 public class ClientsHolder {
-	private static final String key = "Carab!";
-	private static final String salt = "EventerKOD";
-	private static final String pepper = "#Test~";
-	private static final Charset charset = Charset.forName("UTF-8");
 	private static final Logger logger = Logger.getLogger(ClientsHolder.class.getName());
 
 	private static final ConcurrentHashMap<String, SessionTimer> sessions = new ConcurrentHashMap<>();
@@ -44,13 +37,13 @@ public class ClientsHolder {
 	 */
 	public static boolean addClient(String eventerToken, MessagesHandler client) {
 		try {
-			String soapToken = decrypt(eventerToken);
+			String soapToken = CarabiFunc.decrypt(eventerToken);
 			client.getUtilProperties().setProperty("soapToken", soapToken);
 			SessionTimer sessionTimer = new SessionTimer(eventerToken, soapToken, client);
 			sessions.put(eventerToken, sessionTimer);
 			new Thread(sessionTimer).start();
 			return true;
-		} catch (Exception ex) {
+		} catch (GeneralSecurityException | CarabiException_Exception ex) {
 			logger.log(Level.INFO, null, ex);
 			return false;
 		}
@@ -130,42 +123,6 @@ public class ClientsHolder {
 				event.post(eventerToken);
 			}
 		}
-	}
-	
-	static String encrypt (String data) throws Exception {
-		byte[] input = data.getBytes(charset);
-		String secretKey = key + salt;
-		SecretKeySpec key = new SecretKeySpec(secretKey.getBytes(charset), "AES");
-		String iv = salt + pepper;
-		IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes(charset));
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-		byte[] encrypted= new byte[cipher.getOutputSize(input.length)];
-		int enc_len = cipher.update(input, 0, input.length, encrypted, 0);
-		enc_len += cipher.doFinal(encrypted, enc_len);
-		return DatatypeConverter.printBase64Binary(encrypted);
-	}
-	
-	/**
-	 * Расшифровка входного токена.
-	 * Если входной токен был получен функцией getEventerToken SOAP-сервера &mdash;
-	 * на выходе должен получиться SOAP-токен.
-	 * @param encrypted зашифрованный токен
-	 * @return расшифрованный токен для обращения к SOAP-серверу
-	 * @throws Exception 
-	 */
-	static String decrypt (String encrypted) throws Exception {
-		byte[] input = DatatypeConverter.parseBase64Binary(encrypted);
-		String secretKey = key + salt;
-		SecretKeySpec key = new SecretKeySpec(secretKey.getBytes(charset), "AES");
-		String iv = salt + pepper;
-		IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes(charset));
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
-		byte[] decrypted = new byte[cipher.getOutputSize(input.length)];
-		int dec_len = cipher.update(input, 0, input.length, decrypted, 0);
-		dec_len += cipher.doFinal(decrypted, dec_len);
-		return new String(decrypted, charset).trim();
 	}
 	
 	/**
