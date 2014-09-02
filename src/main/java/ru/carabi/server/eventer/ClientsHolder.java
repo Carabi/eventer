@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonObject;
 import ru.carabi.libs.CarabiFunc;
-import ru.carabi.server.soap.CarabiException_Exception;
+import ru.carabi.stub.CarabiException_Exception;
 
 /**
  * Контейнер клиентских сессий.

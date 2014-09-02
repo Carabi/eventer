@@ -28,53 +28,6 @@
                 <groupId>org.jvnet.jax-ws-commons</groupId>
                 <artifactId>jaxws-maven-plugin</artifactId>
                 <version>2.3</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>wsimport</goal>
-                        </goals>
-                        <configuration>
-                            <wsdlFiles>
-                                <wsdlFile>127.0.0.1_8080/carabiserver/GuestService.wsdl</wsdlFile>
-                            </wsdlFiles>
-                            <packageName></packageName>
-                            <wsdlLocation>http://127.0.0.1:8080/carabiserver/GuestService?wsdl</wsdlLocation>
-                            <staleFile>${project.build.directory}/jaxws/stale/GuestService.stale</staleFile>
-                        </configuration>
-                        <id>wsimport-generate-GuestService</id>
-                        <phase>generate-sources</phase>
-                    </execution>
-                    <execution>
-                        <goals>
-                            <goal>wsimport</goal>
-                        </goals>
-                        <configuration>
-                            <wsdlFiles>
-                                <wsdlFile>127.0.0.1_8080/carabiserver/MessageService.wsdl</wsdlFile>
-                            </wsdlFiles>
-                            <packageName></packageName>
-                            <wsdlLocation>http://127.0.0.1:8080/carabiserver/MessageService?wsdl</wsdlLocation>
-                            <staleFile>${project.build.directory}/jaxws/stale/MessageService.stale</staleFile>
-                        </configuration>
-                        <id>wsimport-generate-MessageService</id>
-                        <phase>generate-sources</phase>
-                    </execution>
-                    <execution>
-                        <goals>
-                            <goal>wsimport</goal>
-                        </goals>
-                        <configuration>
-                            <wsdlFiles>
-                                <wsdlFile>127.0.0.1_8080/carabiserver/QueryService.wsdl</wsdlFile>
-                            </wsdlFiles>
-                            <packageName></packageName>
-                            <wsdlLocation>http://127.0.0.1:8080/carabiserver/QueryService?wsdl</wsdlLocation>
-                            <staleFile>${project.build.directory}/jaxws/stale/QueryService.stale</staleFile>
-                        </configuration>
-                        <id>wsimport-generate-QueryService</id>
-                        <phase>generate-sources</phase>
-                    </execution>
-                </executions>
                 <dependencies>
                     <dependency>
                         <groupId>javax.xml</groupId>
@@ -139,11 +92,22 @@
       <artifactId>libs</artifactId>
       <version>1.0</version>
       <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>javax.json-api</artifactId>
+          <groupId>javax.json</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.glassfish</groupId>
       <artifactId>javax.json</artifactId>
       <version>1.0.4</version>
+    </dependency>
+    <dependency>
+      <groupId>ru.carabi</groupId>
+      <artifactId>stub</artifactId>
+      <version>1.0</version>
     </dependency>
   </dependencies>
 </project>

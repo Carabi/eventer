@@ -18,9 +18,9 @@ import javax.json.JsonArray;
 import javax.json.JsonReader;
 import javax.xml.ws.Holder;
 import ru.carabi.libs.CarabiFunc;
-import ru.carabi.server.soap.CarabiException_Exception;
-import ru.carabi.server.soap.CarabiOracleException_Exception;
-import ru.carabi.server.soap.QueryParameter;
+import ru.carabi.stub.CarabiException_Exception;
+import ru.carabi.stub.CarabiOracleException_Exception;
+import ru.carabi.stub.QueryParameter;
 
 /**
  * Сообщение от клиента Carabi.

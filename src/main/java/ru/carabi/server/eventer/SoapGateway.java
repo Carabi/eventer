@@ -3,12 +3,12 @@ package ru.carabi.server.eventer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import ru.carabi.server.soap.GuestService;
-import ru.carabi.server.soap.GuestService_Service;
-import ru.carabi.server.soap.MessageService;
-import ru.carabi.server.soap.MessageService_Service;
-import ru.carabi.server.soap.QueryService;
-import ru.carabi.server.soap.QueryService_Service;
+import ru.carabi.stub.GuestService;
+import ru.carabi.stub.GuestService_Service;
+import ru.carabi.stub.MessageService;
+import ru.carabi.stub.MessageService_Service;
+import ru.carabi.stub.QueryService;
+import ru.carabi.stub.QueryService_Service;
 
 /**
  *
