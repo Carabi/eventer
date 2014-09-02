@@ -162,7 +162,8 @@ public class ClientsHolder {
 		sessions.get(eventerToken).oldEvents.put(eventType, eventText);
 	}
 	
-	public static void fireEvent(String eventPackageJson) throws Exception {
+	public static void fireEvent(String encryptedEventPackage) throws Exception {
+		String eventPackageJson = CarabiFunc.decrypt(encryptedEventPackage);
 		logger.log(Level.FINE, "fireEvent: {0}", eventPackageJson);
 		JsonObject eventPackage = Json.createReader(new StringReader(eventPackageJson)).readObject();
 		String schema = eventPackage.getString("schema");
