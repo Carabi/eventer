@@ -21,8 +21,6 @@ import static ru.carabi.server.eventer.CarabiMessage.Type.auth;
 public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	private static final Logger logger = Logger.getLogger(MessagesHandler.class.getName());
 	private ChannelHandlerContext myctx;
-	private static int clientIDCounter = 0;
-	private int clientID;
 
 	private final Properties utilProperties = new Properties();//Свойства привязанные к клиенту, не имеющие отношения к протоколу
 	
@@ -36,8 +34,6 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
 		super.channelRegistered(ctx); //To change body of generated methods, choose Tools | Templates.
 		myctx = ctx;
-		clientID = clientIDCounter;
-		clientIDCounter += 1;
 		logger.info("channelRegistered");
 		logger.setLevel(Level.FINE);
 		readingBuffer = Unpooled.directBuffer();
@@ -116,9 +112,13 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 		ClientsHolder.delClient(token);
 		readingBuffer.clear();
 		readingBuffer.release();
-//		if (utilProperties.getProperty("soapToken") != null) {
-//			SoapGateway.guestServicePort.unauthorize(utilProperties.getProperty("soapToken"), false);
-//		}
+		if (utilProperties.getProperty("soapToken") != null) {
+			try {
+				SoapGateway.chatServicePort.fireUserState(token, false);
+			} catch (Exception ex) {
+				Logger.getLogger(MessagesHandler.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}

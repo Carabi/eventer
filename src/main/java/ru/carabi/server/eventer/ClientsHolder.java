@@ -5,6 +5,7 @@ import io.netty.util.internal.ConcurrentSet;
 import java.io.StringReader;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,6 +64,18 @@ public class ClientsHolder {
 		}
 		sessionTimer.active = false;
 	}
+	
+	/**
+	 * Получить логины пользователей, подключённых к Eventer в данный момент.
+	 * @return 
+	 */
+	static Set<String> getUsersOnline() {
+		Set<String> users = new HashSet<>();
+		for (SessionTimer session: sessions.values()) {
+			users.add(session.login);
+		}
+		return users;
+	}
 
 	/**
 	 * Сессия пользователя с таймером для отправки статистических событий.
@@ -89,9 +102,9 @@ public class ClientsHolder {
 			this.client = client;
 			this.sessionContextChannel = client.getChannel();
 			String userInfoJson = SoapGateway.guestServicePort.getUserInfo(soapToken);
-			logger.info(userInfoJson);
+			logger.fine(userInfoJson);
 			JsonObject userInfo = Json.createReader(new StringReader(userInfoJson)).readObject();
-			schema = userInfo.getString("schema");
+			schema = userInfo.getString("schema", "");
 			login = userInfo.getString("login");
 			userId = userInfo.getInt("carabiUserID");
 		}
@@ -172,9 +185,10 @@ public class ClientsHolder {
 		String message = eventPackage.getString("message");
 		for (SessionTimer session: sessions.values()) {
 			logger.log(Level.FINE, "messsage to {0}", session.login);
-			boolean messageToUser = session.login.equals(login);
+			boolean messageToEverybody = (login == null || login.equals("")) && (schema == null || schema.equals(""));
 			boolean messageToSchema = (login == null || login.equals("")) && session.schema.equals(schema);
-			if (messageToUser || messageToSchema) {
+			boolean messageToUser = session.login.equals(login);
+			if (messageToEverybody || messageToUser || messageToSchema) {
 				logger.fine("firing!");
 				CarabiMessage.sendMessage(session.sessionContextChannel, (short) eventCode, message);
 			}

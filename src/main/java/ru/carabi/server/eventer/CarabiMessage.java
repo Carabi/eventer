@@ -10,11 +10,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonArray;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.xml.ws.Holder;
 import ru.carabi.libs.CarabiFunc;
@@ -90,6 +92,9 @@ public class CarabiMessage {
 		 */
 		baseEventsList(11),
 		chatMessage(12),
+		chatMessageRead(13),
+		userOnlineEvent(14),
+		userOnlineQuery(15),
 		error(Short.MAX_VALUE);
 		
 		private short code;
@@ -148,6 +153,8 @@ public class CarabiMessage {
 				return new FireEvent(message, messageType, client);
 			case shutdown:
 				return new Shutdown(message, messageType, client);
+			case userOnlineQuery:
+				return new UserOnlineQuery(message, messageType, client);
 			default:
 				return new CarabiMessage(message, messageType, client);
 		}
@@ -168,8 +175,6 @@ public class CarabiMessage {
 				return new BaseEventsTable(prevMessage, messageType, force, client);
 			case baseEventsList:
 				return new BaseEventsList(prevMessage, messageType, force, client);
-			case chatMessage:
-				return new ChatMessage(prevMessage, messageType, force, client);
 			default:
 				return new CarabiMessage(prevMessage, messageType, client);
 		}
@@ -212,7 +217,7 @@ public class CarabiMessage {
 	 * @param token токен подключившегося клиента
 	 */
 	public void post(String token) {
-		sendMessage(ctx, CarabiMessage.Type.reserved, text);
+		sendMessage(ctx, type, text);
 	}
 	
 	/**
@@ -327,6 +332,12 @@ class Auth extends CarabiMessage {
 		if (ClientsHolder.addClient(token, getClient())) {
 			String answer = "Клиент " + token + " авторизован!";
 			sendMessage(getCtx(), Type.auth, answer);
+			getCtx().flush();
+			try {
+				SoapGateway.chatServicePort.fireUserState(token, true);
+			} catch (Exception ex) {
+				Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		} else {
 			getCtx().disconnect();
 		}
@@ -456,9 +467,32 @@ class BaseEventsList extends CarabiMessage {
 }
 class ChatMessage extends CarabiMessage {
 	boolean force;
-	public ChatMessage(String src, CarabiMessage.Type type, boolean force, MessagesHandler client) {
+	public ChatMessage(String src, CarabiMessage.Type type, MessagesHandler client) {
 		super(src, type, client);
-		this.force = force;
 	}
 }
-
+class UserOnlineQuery extends CarabiMessage {
+	public UserOnlineQuery(String text, CarabiMessage.Type type, MessagesHandler client) {
+		super(text, type, client);
+	}
+	@Override
+	public void handle(String token) {
+		String usersJson = getText();
+		JsonArray usersQueried = Json.createReader(new StringReader(usersJson)).readArray();
+		Set<String> usersOnline = ClientsHolder.getUsersOnline();
+		JsonObjectBuilder result = Json.createObjectBuilder();
+		final int size = usersQueried.size();
+		if (size > 0) {
+			for (int i=0; i<size; i++) {
+				String login = usersQueried.getString(i);
+				result.add(login, usersOnline.contains(login));
+			}
+		} else {
+			for (String login: usersOnline) {
+				result.add(login, true);
+			}
+		}
+		String answer = result.build().toString();
+		sendMessage(getCtx(), getType(), answer);
+	}
+}
