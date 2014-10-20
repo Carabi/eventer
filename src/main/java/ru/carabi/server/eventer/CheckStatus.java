@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import ru.carabi.libs.CarabiEventType;
 
 /**
  * Клиент, отправляющий запросы для проверки состояния Eventer-а
@@ -30,7 +31,7 @@ public class CheckStatus{
 
 	private static void sendPing(OutputStream outputStream) throws IOException {
 		outputStream.write((byte)0);
-		outputStream.write((byte)CarabiMessage.Type.ping.getCode());
+		outputStream.write((byte)CarabiEventType.ping.getCode());
 		outputStream.write("PING ПИНГ".getBytes("UTF-8"));
 		outputStream.write((byte)0);
 	}
@@ -41,7 +42,7 @@ public class CheckStatus{
 		read = inputStream.read();
 		assert read == 0;
 		read = inputStream.read();
-		assert read == CarabiMessage.Type.pong.getCode();
+		assert read == CarabiEventType.pong.getCode();
 		int i = 0;
 		read = inputStream.read();
 		while (read != 0) {

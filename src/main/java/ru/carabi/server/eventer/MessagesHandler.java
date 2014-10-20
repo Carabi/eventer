@@ -9,7 +9,8 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static ru.carabi.server.eventer.CarabiMessage.Type.auth;
+import ru.carabi.libs.CarabiEventType;
+import static ru.carabi.libs.CarabiEventType.auth;
 
 /**
  * Реализация бинарного протокола сообщений Carabi.
@@ -69,9 +70,9 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 					if (bt == 0) {//Терминальный ноль
 						readHead = true;
 						String message = messageBuffer.toString(Charset.forName("UTF-8"));
-						CarabiMessage.Type messageType= CarabiMessage.Type.getTypeByCode(messageTypeCode);
+						CarabiEventType messageType= CarabiEventType.getTypeByCode(messageTypeCode);
 						if (messageType == null) {
-							messageType = CarabiMessage.Type.error;
+							messageType = CarabiEventType.error;
 						}
 						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, messageType, this);
 						if (carabiMessage.getType() == auth) {

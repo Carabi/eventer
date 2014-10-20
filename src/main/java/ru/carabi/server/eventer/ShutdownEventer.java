@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import ru.carabi.libs.CarabiEventType;
 import ru.carabi.libs.CarabiFunc;
 
 /**
@@ -33,7 +34,7 @@ public class ShutdownEventer{
 
 	private static void encryptedKeyRequest(OutputStream outputStream, String encryptedKey) throws IOException {
 		outputStream.write((byte)0);
-		outputStream.write((byte)CarabiMessage.Type.shutdown.getCode());
+		outputStream.write((byte)CarabiEventType.shutdown.getCode());
 		byte[] buffer = encryptedKey.getBytes();
 		for (int i=0; i<buffer.length; i++) {
 			outputStream.write(buffer[i]);
@@ -47,7 +48,7 @@ public class ShutdownEventer{
 		read = inputStream.read();
 		assert read == 0;
 		read = inputStream.read();
-		assert read == CarabiMessage.Type.shutdown.getCode();
+		assert read == CarabiEventType.shutdown.getCode();
 		int i = 0;
 		read = inputStream.read();
 		while (read != 0) {
@@ -60,7 +61,7 @@ public class ShutdownEventer{
 
 	private static void emptyShutdownRequest(OutputStream outputStream) throws IOException {
 		outputStream.write((byte)0);
-		outputStream.write((byte)CarabiMessage.Type.shutdown.getCode());
+		outputStream.write((byte)CarabiEventType.shutdown.getCode());
 		outputStream.write((byte)0);
 	}
 }

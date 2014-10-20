@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonObject;
+import ru.carabi.libs.CarabiEventType;
 import ru.carabi.libs.CarabiFunc;
 import ru.carabi.stub.CarabiException_Exception;
 
@@ -83,7 +84,7 @@ public class ClientsHolder {
 	 */
 	private static class SessionTimer implements Runnable {
 		private static final int EVENT_INTERVAL = 5;//интервал таймера проверки событий в секундах
-		private static final int SESSION_INTERVAL = 5 * 60;//интервал обновления сессии
+		private static final int SESSION_INTERVAL = 30;//интервал обновления сессии
 		boolean active = true;
 		String schema;
 		String login;
@@ -92,8 +93,8 @@ public class ClientsHolder {
 		String eventerToken;
 		MessagesHandler client;
 		ChannelHandlerContext sessionContextChannel;
-		Set<CarabiMessage.Type> whatToSend = new ConcurrentSet<>();//типы событий, которые должны приходить клиенту автоматически
-		Map<CarabiMessage.Type, String> oldEvents = new ConcurrentHashMap<>();//события по типам, приходившие клиенту ранее
+		Set<CarabiEventType> whatToSend = new ConcurrentSet<>();//типы событий, которые должны приходить клиенту автоматически
+		Map<CarabiEventType, String> oldEvents = new ConcurrentHashMap<>();//события по типам, приходившие клиенту ранее
 		
 		SessionTimer(String eventerToken, String soapToken, MessagesHandler client) throws CarabiException_Exception {
 			active = true;
@@ -114,7 +115,7 @@ public class ClientsHolder {
 			int sessionCounter = 0;//
 			while (active && !sessionContextChannel.isRemoved()) {
 				//Проверяем наличие требуемых (whatToSend) событий
-				for (CarabiMessage.Type type: whatToSend) {
+				for (CarabiEventType type: whatToSend) {
 					CarabiMessage event = CarabiMessage.writeCarabiMessage(oldEvents.get(type), type, false, client);
 					event.post(eventerToken);
 				}
@@ -130,10 +131,10 @@ public class ClientsHolder {
 					//Каждые SESSION_INTERVAL ставим testingSession true для уведомления сервера с базой
 					client.getUtilProperties().setProperty("testingSession", "true");
 					sessionCounter = 0;
+					//обмениваемся пингами с клиентом
+					CarabiMessage event = CarabiMessage.writeCarabiMessage("TEST_SESSION_PING", CarabiEventType.ping, false, client);
+					event.post(eventerToken);
 				}
-				//обмениваемся пингами с клиентом
-				CarabiMessage event = CarabiMessage.writeCarabiMessage("TEST_SESSION_PING", CarabiMessage.Type.ping, false, client);
-				event.post(eventerToken);
 			}
 		}
 	}
@@ -155,7 +156,7 @@ public class ClientsHolder {
 	 * @param eventerToken токен пользователя
 	 * @param eventTypes типы событий, о которых оповещать
 	 */
-	public static void addEventTypes(String eventerToken, Collection<CarabiMessage.Type> eventTypes) {
+	public static void addEventTypes(String eventerToken, Collection<CarabiEventType> eventTypes) {
 		sessions.get(eventerToken).whatToSend.addAll(eventTypes);
 	}
 	/**
@@ -163,7 +164,7 @@ public class ClientsHolder {
 	 * @param eventerToken токен пользователя
 	 * @param eventTypes типы событий, о которых не оповещать
 	 */
-	public static void removeEventTypes(String eventerToken, Collection<CarabiMessage.Type> eventTypes) {
+	public static void removeEventTypes(String eventerToken, Collection<CarabiEventType> eventTypes) {
 		sessions.get(eventerToken).whatToSend.removeAll(eventTypes);
 	}
 	
@@ -171,7 +172,7 @@ public class ClientsHolder {
 		sessions.get(eventerToken).whatToSend.clear();
 	}
 	
-	public static void setLastEvent(String eventerToken, CarabiMessage.Type eventType, String eventText) {
+	public static void setLastEvent(String eventerToken, CarabiEventType eventType, String eventText) {
 		sessions.get(eventerToken).oldEvents.put(eventType, eventText);
 	}
 	
