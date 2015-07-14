@@ -35,7 +35,7 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
 		super.channelRegistered(ctx); //To change body of generated methods, choose Tools | Templates.
 		myctx = ctx;
-		logger.info("channelRegistered");
+		logger.fine("channelRegistered");
 		logger.setLevel(Level.FINE);
 		readingBuffer = Unpooled.directBuffer();
 	}
@@ -91,7 +91,7 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		super.channelActive(ctx); //To change body of generated methods, choose Tools | Templates.
-		logger.info("channelActive");
+		logger.fine("channelActive");
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
@@ -100,7 +100,7 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		super.channelInactive(ctx); //To change body of generated methods, choose Tools | Templates.
-		logger.info("channelInactive");
+		logger.fine("channelInactive");
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}
@@ -109,17 +109,22 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
 		super.channelUnregistered(ctx); //To change body of generated methods, choose Tools | Templates.
-		logger.info("channelUnregistered");
-		ClientsHolder.delClient(token);
+		logger.fine("channelUnregistered");
 		readingBuffer.clear();
 		readingBuffer.release();
-		if (utilProperties.getProperty("soapToken") != null) {
-			try {
-				SoapGateway.chatServicePort.fireUserState(token, false);
-			} catch (Exception ex) {
-				Logger.getLogger(MessagesHandler.class.getName()).log(Level.SEVERE, null, ex);
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				ClientsHolder.delClient(token);
+				if (utilProperties.getProperty("soapToken") != null) {
+					try {
+						SoapGateway.chatServicePort.fireUserState(token, false);
+					} catch (Exception ex) {
+						Logger.getLogger(MessagesHandler.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
 			}
-		}
+		}).start();
 		if (myctx != ctx) {
 			logger.warning("New CTX!");
 		}

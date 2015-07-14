@@ -8,10 +8,8 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.json.Json;
@@ -223,11 +221,16 @@ class Pong extends CarabiMessage {
 		//не отвечаем, если шла проверка сессии -- передаём на Glassfish
 		if ("true".equals(utilProlerties.getProperty("testingSession"))) {
 			utilProlerties.setProperty("testingSession", "false");
-			try {
-				SoapGateway.guestServicePort.getUserInfo(getClient().getUtilProperties().getProperty("soapToken"));
-			} catch (CarabiException_Exception ex) {
-				Logger.getLogger(Pong.class.getName()).log(Level.SEVERE, null, ex);
-			}
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						SoapGateway.guestServicePort.getUserInfo(getClient().getUtilProperties().getProperty("soapToken"));
+					} catch (CarabiException_Exception ex) {
+						Logger.getLogger(Pong.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
+			}).start();
 		}
 	}
 }
@@ -237,19 +240,25 @@ class Auth extends CarabiMessage {
 		super(src, type, client);
 	}
 	@Override
-	public void handle(String token) {
+	public void handle(final String token) {
 		if (ClientsHolder.clientlIsRegistered(token)) {
 			return;
 		}
 		if (ClientsHolder.addClient(token, getClient())) {
 			String answer = "Клиент " + token + " авторизован!";
+			logger.fine(answer);
 			sendMessage(getCtx(), CarabiEventType.auth, answer);
 			getCtx().flush();
-			try {
-				SoapGateway.chatServicePort.fireUserState(token, true);
-			} catch (Exception ex) {
-				Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
-			}
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						SoapGateway.chatServicePort.fireUserState(token, true);
+					} catch (Exception ex) {
+						Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
+			}).start();
 		} else {
 			getCtx().disconnect();
 		}
