@@ -203,6 +203,7 @@ class Ping extends CarabiMessage {
 	public void handle(String token) {
 		String answer = "PONG ПОНГ";
 		sendMessage(getCtx(), CarabiEventType.pong, answer);
+		ClientsHolder.updateLastActive(token);
 	}
 	
 	@Override
@@ -217,6 +218,7 @@ class Pong extends CarabiMessage {
 	}
 	@Override
 	public void handle(String token) {
+		ClientsHolder.updateLastActive(token);
 		final Properties utilProlerties = getClient().getUtilProperties();
 		//не отвечаем, если шла проверка сессии -- передаём на Glassfish
 		if ("true".equals(utilProlerties.getProperty("testingSession"))) {
@@ -249,16 +251,7 @@ class Auth extends CarabiMessage {
 			logger.fine(answer);
 			sendMessage(getCtx(), CarabiEventType.auth, answer);
 			getCtx().flush();
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						SoapGateway.chatServicePort.fireUserState(token, true);
-					} catch (Exception ex) {
-						Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
-					}
-				}
-			}).start();
+			ClientsHolder.setSessionOnline(token, true);
 		} else {
 			getCtx().disconnect();
 		}

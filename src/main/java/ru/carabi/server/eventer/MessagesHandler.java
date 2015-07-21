@@ -74,12 +74,17 @@ public class MessagesHandler extends ChannelInboundHandlerAdapter {
 						if (messageType == null) {
 							messageType = CarabiEventType.error;
 						}
-						CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, messageType, this);
+						final CarabiMessage carabiMessage = CarabiMessage.readCarabiMessage(message, messageType, this);
 						if (carabiMessage.getType() == auth) {
 							token = message;
 						}
 						ReferenceCountUtil.release(messageBuffer);
-						carabiMessage.handle(token);
+						new Thread(new Runnable() {
+							@Override
+							public void run() {
+								carabiMessage.handle(token);
+							}
+						}).start();
 					} else {
 						messageBuffer.writeByte(bt);
 					}

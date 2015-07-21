@@ -5,6 +5,7 @@ import io.netty.util.internal.ConcurrentSet;
 import java.io.StringReader;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,8 +27,125 @@ import ru.carabi.stub.CarabiException_Exception;
  */
 public class ClientsHolder {
 	private static final Logger logger = Logger.getLogger(ClientsHolder.class.getName());
-
+	
+	static {
+		createOnlineMonitorTimer();
+	}
+	/**
+	 * Пользовательские сессии (по токенам)
+	 */
 	private static final ConcurrentHashMap<String, SessionTimer> sessions = new ConcurrentHashMap<>();
+	
+	/**
+	 * Когда пользователь (по логину) выполнял последнее действие
+	 */
+	private static final ConcurrentHashMap<String, Date> usersLastactive = new ConcurrentHashMap<>();
+	
+	/**
+	 * Подключен ли пользователь сейчас
+	 */
+	private static final ConcurrentHashMap<String, Boolean> usersOnline = new ConcurrentHashMap<>();
+	
+	/**
+	 * Недавно отключившиеся пользователи (если снова не подключатся -- рассылаем событие)
+	 */
+	private static final ConcurrentHashMap<String, String> disconnectedRecently = new ConcurrentHashMap<>();
+	
+	/**
+	 * Сессии и пользователи
+	 */
+	private static final ConcurrentHashMap<String, String> loginPerToken = new ConcurrentHashMap<>();
+	
+	/**
+	 * Клиент подключился или отключился. Если клиент подключился и не был на
+	 * сервере больше минуты -- отправить событие. Если клиент отключился --
+	 * подождать минуту (он может подключиться снова, если порвалась связь),
+	 * если не подключился -- отправить событие.
+	 * @param token eventer-токен (зашифрованный soap-токен) сессии
+	 * @param login логин клиента
+	 * @param isOnline подключился или отключился
+	 */
+	public static void setUserOnline(final String token, String login, boolean isOnline) {
+		logger.log(Level.FINE, "setUserOnline({0}, {1}, {2})", new Object[]{token, login, isOnline});
+		Date lastactive = new Date(0);
+		Date currentTime = new Date();
+		if (usersLastactive.containsKey(login)) {
+			lastactive = usersLastactive.get(login);
+		}
+		boolean wasOnline = false;
+		if (usersOnline.containsKey(login)) {
+			wasOnline = usersOnline.get(login);
+		}
+		usersLastactive.put(login, currentTime);
+		usersOnline.put(login, isOnline);
+		if (wasOnline == isOnline) {
+			return;
+		}
+		if (wasOnline == false && isOnline == true) {
+			disconnectedRecently.remove(login);
+			if ((currentTime.getTime() - lastactive.getTime()) > CarabiFunc.onlineControlTimeout * 1000) {
+				logger.log(Level.FINE, "fireUserStateSoap({0}, true)", token);
+				fireUserStateSoap(token, true);
+			}
+		}
+		if (wasOnline == true && isOnline == false) {
+			disconnectedRecently.put(login, token);
+		}
+	}
+
+	private static void fireUserStateSoap(final String token, final boolean online) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					SoapGateway.chatServicePort.fireUserState(token, online);
+				} catch (Exception ex) {
+					Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}).start();
+	}
+	
+	public static void setSessionOnline(String token, Boolean isOnline) {
+		setUserOnline(token, loginPerToken.get(token), isOnline);
+	}
+	
+	public static void updateLastActive(String token) {
+		String login = loginPerToken.get(token);
+		if (login != null) {
+			usersLastactive.put(login, new Date());
+		}
+	}
+	
+	private static Thread onlineMonitorTimer;
+	
+	private static void createOnlineMonitorTimer() {
+		onlineMonitorTimer = new Thread(new Runnable() {
+			@Override
+			public synchronized void run() {
+				//каждые 10 секунд смотрим, есть ли недавно отключившиеся
+				//пользователи. При отключении более минуты назад шлём событие
+				long currentTime;
+				while (true) {
+					try {
+						currentTime = new Date().getTime();
+						for (Map.Entry<String, String> disconnectedUserSession : disconnectedRecently.entrySet()) {
+							String login = disconnectedUserSession.getKey();
+							String token = disconnectedUserSession.getValue();
+							long lastactive = usersLastactive.get(login).getTime();
+							if ((currentTime - lastactive) > CarabiFunc.onlineControlTimeout * 1000) {
+								fireUserStateSoap(token, false);
+							}
+						}
+						wait(1000 * 10);
+					} catch (InterruptedException ex) {
+						Logger.getLogger(ClientsHolder.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
+			}
+		});
+		onlineMonitorTimer.start();
+	}
 	
 	/**
 	 * Добавить подключение.
@@ -72,8 +190,10 @@ public class ClientsHolder {
 	 */
 	static Set<String> getUsersOnline() {
 		Set<String> users = new HashSet<>();
-		for (SessionTimer session: sessions.values()) {
-			users.add(session.login);
+		for (Map.Entry<String, Boolean> userOnline: usersOnline.entrySet()) {
+			if (userOnline.getValue()) {
+				users.add(userOnline.getKey());
+			}
 		}
 		return users;
 	}
@@ -108,6 +228,7 @@ public class ClientsHolder {
 			schema = userInfo.getString("schema", "");
 			login = userInfo.getString("login");
 			userId = userInfo.getInt("carabiUserID");
+			loginPerToken.put(eventerToken, login);
 		}
 		
 		@Override

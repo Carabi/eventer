@@ -35,7 +35,6 @@ public class NettyListener {
 			.childHandler(new ChannelInitializer<SocketChannel>() {
 				@Override
 				public void initChannel(SocketChannel ch) throws Exception {
-					logger.info("initChannel");
 					ch.pipeline().addLast(new MessagesHandler());
 				}
 			})
