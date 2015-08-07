@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
@@ -16,12 +15,9 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
-import javax.xml.ws.Holder;
 import ru.carabi.libs.CarabiFunc;
 import ru.carabi.libs.CarabiEventType;
 import ru.carabi.stub.CarabiException_Exception;
-import ru.carabi.stub.CarabiOracleException_Exception;
-import ru.carabi.stub.QueryParameter;
 
 /**
  * Сообщение от клиента Carabi.
@@ -81,25 +77,21 @@ public class CarabiMessage {
 		switch (messageType) {
 			case ping:
 				return new Ping(null, messageType, client);
-			case baseEventsTable:
-				return new BaseEventsTable(prevMessage, messageType, force, client);
-			case baseEventsList:
-				return new BaseEventsList(prevMessage, messageType, force, client);
 			default:
 				return new CarabiMessage(prevMessage, messageType, client);
 		}
 	}
+	
 	public CarabiMessage(String text, CarabiEventType type, MessagesHandler client) {
 		this.text = text;
 		this.type = type;
 		this.ctx = client.getChannel();
 		this.client = client;
 	}
-
+	
 	public ChannelHandlerContext getCtx() {
 		return ctx;
 	}
-	
 	
 	public MessagesHandler getClient() {
 		return client;
@@ -326,59 +318,6 @@ class FireEvent extends CarabiMessage {
 	}
 }
 
-class BaseEventsTable extends CarabiMessage {
-	boolean force;
-	public BaseEventsTable(String src, CarabiEventType type, boolean force, MessagesHandler client) {
-		super(src, type, client);
-		this.force = force;
-	}
-	@Override
-	public void post(String token) {
-		try {
-			String answer;
-			Holder<List<QueryParameter>> parameters = new Holder<>();
-			parameters.value = new ArrayList<>();
-			QueryParameter days = new QueryParameter();
-			days.setName("DAYS");
-			days.setValue("1");
-			parameters.value.add(days);
-			SoapGateway.queryServicePort.runStoredQuery(ClientsHolder.getSoapToken(token), "", "GET_NOTIFY_MESSAGES", -1, true, parameters);
-			answer = parameters.value.get(0).getValue();
-			if (force || !answer.equals(getText())) {
-				sendMessage(getCtx(), getType(), answer);
-			}
-			ClientsHolder.setLastEvent(token, getType(), answer);
-		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
-			Logger.getLogger(BaseEventsTable.class.getName()).log(Level.SEVERE, null, ex);
-			if (force) {
-				sendMessage(getCtx(), CarabiEventType.error, ex.getMessage());
-			}
-		}
-	}
-	
-}
-class BaseEventsList extends CarabiMessage {
-	boolean force;
-	public BaseEventsList(String src, CarabiEventType type, boolean force, MessagesHandler client) {
-		super(src, type, client);
-		this.force = force;
-	}
-	//answer = messageServicePort.getNotifyMessages(getSoapToken(token));
-	@Override
-	public void post(String token) {
-		String answer;
-		try {
-			answer = SoapGateway.messageServicePort.getNotifyMessages(ClientsHolder.getSoapToken(token));
-			if (force || !answer.equals(getText())) {
-				sendMessage(getCtx(), getType(), answer);
-			}
-			ClientsHolder.setLastEvent(token, getType(), answer);
-		} catch (CarabiException_Exception | CarabiOracleException_Exception ex) {
-			Logger.getLogger(BaseEventsList.class.getName()).log(Level.SEVERE, null, ex);
-			sendMessage(getCtx(), CarabiEventType.error, ex.getMessage());
-		}
-	}
-}
 class ChatMessage extends CarabiMessage {
 	boolean force;
 	public ChatMessage(String src, CarabiEventType type, MessagesHandler client) {

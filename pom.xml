@@ -3,11 +3,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>ru.carabi.server</groupId>
-  <artifactId>eventer</artifactId>
-  <version>1.4.0</version>
+  <artifactId>eventer_free</artifactId>
+  <version>2.2.1</version>
   <packaging>jar</packaging>
 
-  <name>eventer</name>
   <url>http://maven.apache.org</url>
     <build>
         <plugins>
@@ -106,8 +105,8 @@
     </dependency>
     <dependency>
       <groupId>ru.carabi</groupId>
-      <artifactId>stub</artifactId>
-      <version>2.1.1.0</version>
+      <artifactId>stub_free</artifactId>
+      <version>2.2.1</version>
     </dependency>
   </dependencies>
 </project>
