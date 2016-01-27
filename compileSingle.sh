@@ -1,4 +1,5 @@
 #!/bin/bash
+mvn clean
 mvn compile assembly:single
 rm -r target/archive-tmp
 rm -r target/classes
