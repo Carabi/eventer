@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>ru.carabi.server</groupId>
-  <artifactId>eventer_free</artifactId>
+  <artifactId>eventer_proprietary</artifactId>
   <version>2.2.3</version>
   <packaging>jar</packaging>
 
@@ -105,7 +105,7 @@
     </dependency>
     <dependency>
       <groupId>ru.carabi</groupId>
-      <artifactId>stub_free</artifactId>
+      <artifactId>stub_proprietary</artifactId>
       <version>2.2.3</version>
     </dependency>
   </dependencies>
